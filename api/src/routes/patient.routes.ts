@@ -6,6 +6,13 @@ const router = Router();
 
 router.use(authenticateToken);
 
+// GET /api/patients/all - Listar TODOS os pacientes (apenas ADMIN)
+router.get(
+  '/all',
+  authorizeRoles('ADMIN'),
+  patientController.getAllPatients
+);
+
 // POST /api/patients - Criar paciente (apenas Admin/Nutritionist)
 router.post(
   '/',

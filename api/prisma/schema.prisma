@@ -25,6 +25,12 @@ enum PlanType {
   CUSTOM
 }
 
+enum OrganizationStatus {
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
 enum AppointmentStatus {
   SCHEDULED
   CONFIRMED
@@ -102,6 +108,7 @@ model User {
   // Relations
   patient                Patient?
   nutritionist           Nutritionist?
+  organizationsOwned     Organization[]         @relation("OrganizationOwner")
   sentMessages           Message[]              @relation("SentMessages")
   notifications          Notification[]
   refreshTokens          RefreshToken[]
@@ -109,6 +116,51 @@ model User {
   auditLogs              AuditLog[]
 
   @@map("users")
+}
+
+// ============================================
+// ORGANIZATIONS (Multi-tenancy)
+// ============================================
+
+model Organization {
+  id          String              @id @default(uuid())
+  name        String
+  slug        String              @unique // URL-friendly identifier
+  cnpj        String?             @unique
+  logo        String?
+  
+  // Contact Info
+  email       String?
+  phone       String?
+  website     String?
+  
+  // Address
+  address     String?
+  city        String?
+  state       String?
+  zipCode     String?
+  country     String              @default("Brasil")
+  
+  // Business Info
+  description String?
+  
+  // Settings
+  status      OrganizationStatus  @default(ACTIVE)
+  maxNutritionists Int             @default(5)
+  maxPatients      Int             @default(100)
+  
+  // Owner (ADMIN user)
+  ownerId     String
+  
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  
+  // Relations
+  owner           User            @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  nutritionists   Nutritionist[]
+  subscriptions   Subscription[]
+  
+  @@map("organizations")
 }
 
 model RefreshToken {
@@ -217,8 +269,14 @@ model Patient {
 model Nutritionist {
   id             String  @id @default(uuid())
   userId         String  @unique
+  organizationId String? // Vinculado a uma organização/clínica
   specialization String?
   crn            String? // Registro profissional
+  bio            String? // Biografia/descrição
+  
+  // Professional Status
+  isActive       Boolean @default(true)
+  hiredDate      DateTime?
   
   // Availability (JSON)
   availability Json @default("{\"monday\":{\"isAvailable\":false,\"slots\":[]},\"tuesday\":{\"isAvailable\":false,\"slots\":[]},\"wednesday\":{\"isAvailable\":false,\"slots\":[]},\"thursday\":{\"isAvailable\":false,\"slots\":[]},\"friday\":{\"isAvailable\":false,\"slots\":[]},\"saturday\":{\"isAvailable\":false,\"slots\":[]},\"sunday\":{\"isAvailable\":false,\"slots\":[]}}")
@@ -227,7 +285,8 @@ model Nutritionist {
   updatedAt DateTime @updatedAt
 
   // Relations
-  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization    Organization?    @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   patients        Patient[]
   appointments    Appointment[]
   recipes         Recipe[]
@@ -275,6 +334,7 @@ model Appointment {
 
   patient      Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
   nutritionist Nutritionist @relation(fields: [nutritionistId], references: [id])
+  conversation Conversation?
 
   @@map("appointments")
 }
@@ -473,34 +533,65 @@ model Exercise {
 // CHAT
 // ============================================
 
-model Conversation {
-  id             String   @id @default(uuid())
-  patientId      String
-  nutritionistId String
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  AUDIO
+  VIDEO
+}
 
-  patient      Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  nutritionist Nutritionist @relation(fields: [nutritionistId], references: [id])
+enum ConversationStatus {
+  SCHEDULED    // Agendada mas ainda não começou
+  ACTIVE       // Em andamento
+  COMPLETED    // Finalizada
+  CANCELLED    // Cancelada
+}
+
+model Conversation {
+  id              String             @id @default(uuid())
+  appointmentId   String?            @unique // Link opcional com consulta agendada
+  nutritionistId  String
+  patientId       String
+  status          ConversationStatus @default(SCHEDULED)
+  isActive        Boolean            @default(true)
+  startedAt       DateTime?
+  endedAt         DateTime?
+  
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  appointment  Appointment?      @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  nutritionist Nutritionist      @relation(fields: [nutritionistId], references: [id])
+  patient      Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
   messages     Message[]
 
+  @@index([nutritionistId])
+  @@index([patientId])
+  @@index([status])
   @@map("conversations")
 }
 
 model Message {
-  id             String   @id @default(uuid())
+  id             String      @id @default(uuid())
   conversationId String
-  senderId       String
-  content        String
-  type           String   @default("TEXT") // TEXT, IMAGE, FILE
-  fileUrl        String?
-  isRead         Boolean  @default(false)
-  createdAt      DateTime @default(now())
+  senderId       String      // User ID
+  senderRole     UserRole    // NUTRITIONIST or PATIENT
+  type           MessageType @default(TEXT)
+  content        String      // Text content or file URL
+  fileName       String?     // For files
+  fileSize       Int?        // For files (bytes)
+  isRead         Boolean     @default(false)
+  
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender       User         @relation("SentMessages", fields: [senderId], references: [id])
 
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([createdAt])
   @@map("messages")
 }
 
@@ -593,5 +684,79 @@ model DataDeletionRequest {
   approvedBy  String?
 
   @@map("data_deletion_requests")
+}
+
+// ============================================
+// PAYMENT & SUBSCRIPTION SYSTEM
+// ============================================
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+  EXPIRED
+}
+
+model Subscription {
+  id             String             @id @default(uuid())
+  organizationId String
+  plan           PlanType
+  status         SubscriptionStatus @default(ACTIVE)
+  startDate      DateTime           @default(now())
+  endDate        DateTime?
+  trialEndsAt    DateTime?
+  gracePeriodEndsAt DateTime?       // Período de carência após atraso
+  
+  // Payment settings
+  monthlyPrice   Float
+  billingDay     Int                @default(1) // Dia do mês para cobrança
+  
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  payments     Payment[]
+  alerts       PaymentAlert[]
+
+  @@map("subscriptions")
+}
+
+model Payment {
+  id             String        @id @default(uuid())
+  subscriptionId String
+  amount         Float
+  dueDate        DateTime
+  paidDate       DateTime?
+  status         PaymentStatus @default(PENDING)
+  method         String?       // PIX, BOLETO, CREDIT_CARD, etc
+  transactionId  String?
+  
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([dueDate])
+  @@map("payments")
+}
+
+model PaymentAlert {
+  id             String   @id @default(uuid())
+  subscriptionId String
+  message        String
+  sentAt         DateTime @default(now())
+  daysOverdue    Int
+  
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@map("payment_alerts")
 }
 

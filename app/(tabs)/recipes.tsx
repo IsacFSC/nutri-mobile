@@ -1,14 +1,46 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { Card, Loading, Button } from '@/src/components/common';
 import { Colors, Typography, Spacing } from '@/src/constants';
 import { useAuthStore } from '@/src/store/authStore';
+import api from '@/src/config/api';
+
+interface Recipe {
+  id: string;
+  name: string;
+  description: string;
+  prepTime: number;
+  category: string;
+  imageUrl?: string;
+  nutrition: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fats: number;
+  };
+  nutritionist: {
+    user: {
+      name: string;
+    };
+  };
+}
+
+const categoryTranslations: Record<string, string> = {
+  BREAKFAST: 'Café da Manhã',
+  MORNING_SNACK: 'Lanche da Manhã',
+  LUNCH: 'Almoço',
+  AFTERNOON_SNACK: 'Lanche da Tarde',
+  DINNER: 'Jantar',
+  EVENING_SNACK: 'Lanche Noturno',
+};
 
 export default function RecipesScreen() {
   const { user } = useAuthStore();
-  const [recipes, setRecipes] = useState([]);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
@@ -16,13 +48,53 @@ export default function RecipesScreen() {
   }, []);
 
   const loadRecipes = async () => {
-    setIsLoading(true);
-    // TODO: Implementar busca de receitas da API
-    setTimeout(() => {
-      setRecipes([]);
+    try {
+      setIsLoading(true);
+      const response = await api.get('/recipes');
+      setRecipes(response.data);
+    } catch (error) {
+      console.error('Erro ao carregar receitas:', error);
+      Alert.alert('Erro', 'Não foi possível carregar as receitas');
+    } finally {
       setIsLoading(false);
-    }, 1000);
+      setRefreshing(false);
+    }
   };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadRecipes();
+  };
+
+  const handleDeleteRecipe = (recipeId: string, recipeName: string) => {
+    Alert.alert(
+      'Confirmar exclusão',
+      `Deseja realmente excluir a receita "${recipeName}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete(`/recipes/${recipeId}`);
+              Alert.alert('Sucesso', 'Receita excluída com sucesso');
+              loadRecipes();
+            } catch (error) {
+              console.error('Erro ao excluir receita:', error);
+              Alert.alert('Erro', 'Não foi possível excluir a receita');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const filteredRecipes = recipes.filter((recipe) =>
+    recipe.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    recipe.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    recipe.category.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   if (isLoading) {
     return <Loading />;
@@ -46,26 +118,48 @@ export default function RecipesScreen() {
         />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {recipes.length === 0 ? (
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {filteredRecipes.length === 0 ? (
           <Card style={styles.emptyCard}>
             <Ionicons name="restaurant-outline" size={64} color={Colors.text.secondary} />
-            <Text style={styles.emptyTitle}>Nenhuma receita cadastrada</Text>
-            <Text style={styles.emptyText}>
-              Crie receitas personalizadas para seus pacientes
+            <Text style={styles.emptyTitle}>
+              {searchTerm ? 'Nenhuma receita encontrada' : 'Nenhuma receita cadastrada'}
             </Text>
-            <Button title="Criar Receita" onPress={() => {}} style={styles.createButton} />
+            <Text style={styles.emptyText}>
+              {searchTerm 
+                ? 'Tente buscar com outros termos'
+                : 'Crie receitas personalizadas para seus pacientes'
+              }
+            </Text>
+            {!searchTerm && (
+              <Button 
+                title="Criar Receita" 
+                onPress={() => router.push('/create-recipe')} 
+                style={styles.createButton} 
+              />
+            )}
           </Card>
         ) : (
-          recipes.map((recipe: any) => (
+          filteredRecipes.map((recipe: Recipe) => (
             <Card key={recipe.id} style={styles.recipeCard}>
               <View style={styles.recipeHeader}>
-                <Text style={styles.recipeName}>{recipe.name}</Text>
+                <View style={styles.recipeTitleContainer}>
+                  <Text style={styles.recipeName}>{recipe.name}</Text>
+                  <Text style={styles.recipeCategory}>
+                    {categoryTranslations[recipe.category] || recipe.category}
+                  </Text>
+                </View>
                 <View style={styles.recipeActions}>
-                  <TouchableOpacity>
-                    <Ionicons name="pencil" size={20} color={Colors.primary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.actionButton}>
+                  <TouchableOpacity 
+                    style={styles.actionButton}
+                    onPress={() => handleDeleteRecipe(recipe.id, recipe.name)}
+                  >
                     <Ionicons name="trash" size={20} color={Colors.error} />
                   </TouchableOpacity>
                 </View>
@@ -74,11 +168,17 @@ export default function RecipesScreen() {
               <View style={styles.recipeInfo}>
                 <View style={styles.infoItem}>
                   <Ionicons name="flame" size={16} color={Colors.text.secondary} />
-                  <Text style={styles.infoText}>{recipe.calories} kcal</Text>
+                  <Text style={styles.infoText}>
+                    {recipe.nutrition?.calories || 0} kcal
+                  </Text>
                 </View>
                 <View style={styles.infoItem}>
                   <Ionicons name="time" size={16} color={Colors.text.secondary} />
                   <Text style={styles.infoText}>{recipe.prepTime} min</Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <Ionicons name="person" size={16} color={Colors.text.secondary} />
+                  <Text style={styles.infoText}>{recipe.nutritionist.user.name}</Text>
                 </View>
               </View>
             </Card>
@@ -86,7 +186,10 @@ export default function RecipesScreen() {
         )}
       </ScrollView>
 
-      <TouchableOpacity style={styles.fab} onPress={() => {}}>
+      <TouchableOpacity 
+        style={styles.fab} 
+        onPress={() => router.push('/create-recipe')}
+      >
         <Ionicons name="add" size={28} color={Colors.text.inverse} />
       </TouchableOpacity>
     </View>
@@ -164,10 +267,18 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: Spacing.sm,
   },
+  recipeTitleContainer: {
+    flex: 1,
+  },
   recipeName: {
     ...Typography.h4,
     color: Colors.text.primary,
-    flex: 1,
+    marginBottom: 4,
+  },
+  recipeCategory: {
+    ...Typography.body2,
+    color: Colors.primary,
+    fontWeight: '500',
   },
   recipeActions: {
     flexDirection: 'row',

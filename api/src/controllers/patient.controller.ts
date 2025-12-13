@@ -203,6 +203,112 @@ export const getPatients = async (req: Request, res: Response) => {
   }
 };
 
+// Listar TODOS os pacientes (apenas ADMIN)
+export const getAllPatients = async (req: Request, res: Response) => {
+  try {
+    const { search, page = 1, limit = 10, organizationId } = req.query;
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const where: any = {};
+
+    // Filtrar por organização se fornecido
+    if (organizationId) {
+      where.nutritionist = {
+        organizationId: organizationId as string,
+      };
+    }
+
+    // Busca por nome, CPF ou email
+    if (search) {
+      where.OR = [
+        { user: { name: { contains: search as string, mode: 'insensitive' } } },
+        { user: { email: { contains: search as string, mode: 'insensitive' } } },
+        { cpf: { contains: search as string } },
+      ];
+    }
+
+    const [patients, total] = await Promise.all([
+      prisma.patient.findMany({
+        where,
+        skip,
+        take: Number(limit),
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatar: true,
+              phone: true,
+            },
+          },
+          nutritionist: {
+            include: {
+              user: {
+                select: {
+                  name: true,
+                },
+              },
+              organization: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+          appointments: {
+            orderBy: { dateTime: 'desc' },
+            take: 1,
+            select: {
+              id: true,
+              dateTime: true,
+              status: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+      prisma.patient.count({ where }),
+    ]);
+
+    // Formatar dados para a tabela
+    const formattedPatients = patients.map((patient) => ({
+      id: patient.id,
+      name: patient.user.name,
+      email: patient.user.email,
+      cpf: patient.cpf,
+      phone: patient.phone || patient.user.phone,
+      avatar: patient.user.avatar,
+      weight: patient.weight,
+      height: patient.height,
+      bmi: patient.bmi,
+      nutritionistName: patient.nutritionist?.user.name,
+      organizationName: patient.nutritionist?.organization?.name,
+      lastConsultation: patient.lastConsultationDate,
+      lastAppointment: patient.appointments[0]?.dateTime,
+      appointmentStatus: patient.appointments[0]?.status,
+      createdAt: patient.createdAt,
+      updatedAt: patient.updatedAt,
+    }));
+
+    res.json({
+      patients: formattedPatients,
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / Number(limit)),
+      },
+    });
+  } catch (error: any) {
+    console.error('Error fetching all patients:', error);
+    res.status(500).json({ error: 'Failed to fetch patients', details: error.message });
+  }
+};
+
 // Obter detalhes completos de um paciente
 export const getPatientById = async (req: Request, res: Response) => {
   try {

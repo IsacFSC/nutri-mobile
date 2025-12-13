@@ -26,6 +26,8 @@ interface Patient {
   weight?: number;
   height?: number;
   bmi?: number;
+  nutritionistName?: string;
+  organizationName?: string;
   lastConsultation?: string;
   lastAppointment?: string;
   appointmentStatus?: string;
@@ -54,7 +56,12 @@ export default function PatientList({ onPatientPress }: PatientListProps) {
         return;
       }
 
-      const response = await api.get(`/patients/nutritionist/${user.id}`, {
+      // Se for ADMIN, usa a rota /all, senão usa a rota do nutricionista
+      const endpoint = user.role === 'ADMIN' 
+        ? '/patients/all'
+        : `/patients/nutritionist/${user.id}`;
+
+      const response = await api.get(endpoint, {
         params: {
           page: pageNum,
           limit: 10,
@@ -156,6 +163,22 @@ export default function PatientList({ onPatientPress }: PatientListProps) {
 
           {/* Colunas roláveis */}
           <View style={styles.scrollableColumns}>
+            {/* Nutricionista (apenas para ADMIN) */}
+            {user?.role === 'ADMIN' && (
+              <View style={styles.dataColumn}>
+                <Text style={styles.columnLabel}>Nutricionista</Text>
+                <Text style={styles.columnValue}>{item.nutritionistName || 'N/A'}</Text>
+              </View>
+            )}
+
+            {/* Organização (apenas para ADMIN) */}
+            {user?.role === 'ADMIN' && (
+              <View style={styles.dataColumn}>
+                <Text style={styles.columnLabel}>Organização</Text>
+                <Text style={styles.columnValue}>{item.organizationName || 'N/A'}</Text>
+              </View>
+            )}
+
             {/* Telefone */}
             <View style={styles.dataColumn}>
               <Text style={styles.columnLabel}>Telefone</Text>

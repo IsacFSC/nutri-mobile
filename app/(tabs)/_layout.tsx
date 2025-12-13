@@ -83,6 +83,17 @@ export default function TabsLayout() {
       />
 
       <Tabs.Screen
+        name="conversations"
+        options={{
+          title: 'Conversas',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="chatbubbles" size={size} color={color} />
+          ),
+          href: user?.role === 'PATIENT' || user?.role === 'NUTRITIONIST' ? '/conversations' : null,
+        }}
+      />
+
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Perfil',

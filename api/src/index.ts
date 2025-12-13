@@ -12,6 +12,10 @@ import mealPlanRoutes from './routes/mealPlan.routes';
 import mfaRoutes from './routes/mfa.routes';
 import uploadRoutes from './routes/upload.routes';
 import lgpdRoutes from './routes/lgpd.routes';
+import organizationRoutes from './routes/organization.routes';
+import nutritionistRoutes from './routes/nutritionist.routes';
+import paymentRoutes from './routes/payment.routes';
+import conversationRoutes from './routes/conversation.routes';
 
 dotenv.config();
 
@@ -41,6 +45,10 @@ app.use('/api/meal-plans', mealPlanRoutes);
 app.use('/api/mfa', mfaRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/lgpd', lgpdRoutes);
+app.use('/api/organizations', organizationRoutes);
+app.use('/api/nutritionists', nutritionistRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/conversations', conversationRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

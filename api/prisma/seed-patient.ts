@@ -99,6 +99,70 @@ async function main() {
     nutritionistRecordId: nutritionistRecord.id,
   });
 
+  // Criar administrador do sistema (se não existir)
+  const adminPassword = await bcrypt.hash('admin123', 10);
+  
+  const admin = await prisma.user.upsert({
+    where: { email: 'admin@nutrimobile.com' },
+    update: {},
+    create: {
+      email: 'admin@nutrimobile.com',
+      password: adminPassword,
+      name: 'Administrador do Sistema',
+      role: 'ADMIN',
+      phone: '(11) 99999-9999',
+      emailVerified: true,
+      lgpdConsent: true,
+      lgpdConsentDate: new Date(),
+      termsAcceptedAt: new Date(),
+      privacyPolicyAcceptedAt: new Date(),
+    },
+  });
+
+  console.log('✅ Administrador criado:', {
+    email: 'admin@nutrimobile.com',
+    password: 'admin123',
+    role: 'ADMIN',
+    id: admin.id,
+  });
+
+  // Criar organização de exemplo
+  const organization = await prisma.organization.upsert({
+    where: { slug: 'clinica-saude-total' },
+    update: {},
+    create: {
+      name: 'Clínica Saúde Total',
+      slug: 'clinica-saude-total',
+      cnpj: '12.345.678/0001-90',
+      email: 'contato@saudetotal.com',
+      phone: '(11) 3333-4444',
+      address: 'Rua das Flores, 123',
+      city: 'São Paulo',
+      state: 'SP',
+      zipCode: '01234-567',
+      description: 'Clínica especializada em nutrição e bem-estar',
+      maxNutritionists: 10,
+      maxPatients: 500,
+      ownerId: admin.id,
+    },
+  });
+
+  console.log('✅ Organização criada:', {
+    name: 'Clínica Saúde Total',
+    slug: 'clinica-saude-total',
+    id: organization.id,
+  });
+
+  // Vincular nutricionista à organização
+  await prisma.nutritionist.update({
+    where: { id: nutritionistRecord.id },
+    data: {
+      organizationId: organization.id,
+    },
+  });
+
+  console.log('✅ Nutricionista vinculado à organização');
+
   // Vincular paciente ao nutricionista
   await prisma.patient.update({
     where: { id: patientRecord.id },
@@ -111,14 +175,18 @@ async function main() {
 
   console.log('\n🎉 Seed concluído com sucesso!');
   console.log('\n📋 Credenciais de teste:');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('👤 PACIENTE:');
-  console.log('   Email: paciente@teste.com');
-  console.log('   Senha: 123456');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('🔑 ADMINISTRADOR:');
+  console.log('   Email: admin@nutrimobile.com');
+  console.log('   Senha: admin123');
   console.log('\n👩‍⚕️ NUTRICIONISTA:');
   console.log('   Email: nutricionista@teste.com');
   console.log('   Senha: 123456');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+  console.log('   Organização: Clínica Saúde Total');
+  console.log('\n👤 PACIENTE:');
+  console.log('   Email: paciente@teste.com');
+  console.log('   Senha: 123456');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 }
 
 main()

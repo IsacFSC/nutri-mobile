@@ -14,9 +14,83 @@ export default function HomeScreen() {
     return <Loading />;
   }
 
-  const isAdmin = user.role === UserRole.ADMIN || user.role === UserRole.NUTRITIONIST;
+  const isAdmin = user.role === UserRole.ADMIN;
+  const isNutritionist = user.role === UserRole.NUTRITIONIST;
 
+  // ADMIN Dashboard
   if (isAdmin) {
+    return (
+      <ScrollView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.greeting}>Olá, {user.name?.split(' ')[0]}!</Text>
+          <Text style={styles.role}>Administrador da Plataforma</Text>
+        </View>
+
+        <View style={styles.quickStats}>
+          <View style={styles.statCard}>
+            <Ionicons name="business" size={32} color={Colors.primary} />
+            <Text style={styles.statValue}>0</Text>
+            <Text style={styles.statLabel}>Organizações</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Ionicons name="people" size={32} color={Colors.accent} />
+            <Text style={styles.statValue}>0</Text>
+            <Text style={styles.statLabel}>Nutricionistas</Text>
+          </View>
+        </View>
+
+        <Card style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>Painel Administrativo</Text>
+          </View>
+          <View style={styles.quickActions}>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => router.push('/admin/dashboard')}
+            >
+              <View style={styles.actionIcon}>
+                <Ionicons name="stats-chart" size={24} color={Colors.primary} />
+              </View>
+              <Text style={styles.actionText}>Dashboard</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => router.push('/admin/organizations')}
+            >
+              <View style={styles.actionIcon}>
+                <Ionicons name="business-outline" size={24} color={Colors.accent} />
+              </View>
+              <Text style={styles.actionText}>Organizações</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => router.push('/admin/nutritionists')}
+            >
+              <View style={styles.actionIcon}>
+                <Ionicons name="people-outline" size={24} color={Colors.secondary} />
+              </View>
+              <Text style={styles.actionText}>Nutricionistas</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => router.push('/(tabs)/patients')}
+            >
+              <View style={styles.actionIcon}>
+                <Ionicons name="person-outline" size={24} color={Colors.success} />
+              </View>
+              <Text style={styles.actionText}>Pacientes</Text>
+            </TouchableOpacity>
+          </View>
+        </Card>
+      </ScrollView>
+    );
+  }
+
+  // NUTRITIONIST Dashboard
+  if (isNutritionist) {
     return (
       <ScrollView style={styles.container}>
         <View style={styles.header}>

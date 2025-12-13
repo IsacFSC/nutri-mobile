@@ -103,28 +103,26 @@ export const createRecipe = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: 'Apenas nutricionistas podem criar receitas' });
     }
 
+    // Criar receita sem ingredientes por enquanto (feature simplificada)
     const recipe = await prisma.recipe.create({
       data: {
         name,
         description,
-        instructions,
+        instructions: Array.isArray(instructions) ? instructions : [instructions],
         prepTime,
-        category,
+        category: category || 'LUNCH',
         imageUrl,
-        nutrition,
+        nutrition: nutrition || { calories: 0, protein: 0, carbs: 0, fats: 0 },
         createdBy: nutritionist.id,
-        ingredients: {
-          create: ingredients?.map((ing: any) => ({
-            foodId: ing.foodId,
-            quantity: ing.quantity,
-            unit: ing.unit,
-          })),
-        },
       },
       include: {
-        ingredients: {
+        nutritionist: {
           include: {
-            food: true,
+            user: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
       },
