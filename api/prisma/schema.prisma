@@ -1,0 +1,597 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url  	    = env("DATABASE_URL")
+  // uncomment next line if you use Prisma <5.10
+  // directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+enum UserRole {
+  ADMIN
+  NUTRITIONIST
+  PATIENT
+}
+
+enum PlanType {
+  FREE
+  BASIC
+  PREMIUM
+  CUSTOM
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum MealCategory {
+  BREAKFAST
+  MORNING_SNACK
+  LUNCH
+  AFTERNOON_SNACK
+  DINNER
+  EVENING_SNACK
+}
+
+enum ExerciseCategory {
+  CARDIO
+  STRENGTH
+  FLEXIBILITY
+  BALANCE
+  YOGA
+  PILATES
+}
+
+enum NotificationType {
+  APPOINTMENT_REMINDER
+  NEW_MESSAGE
+  MEAL_REMINDER
+  WATER_REMINDER
+  FEATURE_UNLOCKED
+  PLAN_UPDATE
+}
+
+// ============================================
+// USERS & AUTH
+// ============================================
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole @default(PATIENT)
+  avatar    String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // MFA (Multi-Factor Authentication)
+  mfaEnabled       Boolean  @default(false)
+  mfaSecret        String?  // TOTP secret
+  mfaBackupCodes   String[] // Códigos de backup
+  lastMfaVerifiedAt DateTime?
+
+  // LGPD Compliance
+  lgpdConsent          Boolean   @default(false)
+  lgpdConsentDate      DateTime?
+  lgpdDataProcessing   Boolean   @default(false)
+  lgpdMarketingConsent Boolean   @default(false)
+  termsAcceptedAt      DateTime?
+  privacyPolicyAcceptedAt DateTime?
+
+  // Security & Audit
+  lastLoginAt          DateTime?
+  lastLoginIp          String?
+  failedLoginAttempts  Int       @default(0)
+  lockedUntil          DateTime?
+  passwordChangedAt    DateTime?
+  emailVerified        Boolean   @default(false)
+  emailVerifiedAt      DateTime?
+
+  // Relations
+  patient                Patient?
+  nutritionist           Nutritionist?
+  sentMessages           Message[]              @relation("SentMessages")
+  notifications          Notification[]
+  refreshTokens          RefreshToken[]
+  passwordResets         PasswordReset[]
+  auditLogs              AuditLog[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model PasswordReset {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_resets")
+}
+
+// ============================================
+// PATIENT
+// ============================================
+
+model Patient {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  nutritionistId String?
+  planType       PlanType @default(FREE)
+  
+  // Dados Pessoais
+  cpf            String?  @unique
+  rg             String?
+  birthDate      DateTime?
+  gender         String?
+  phone          String?
+  emergencyContact String?
+  emergencyPhone String?
+  
+  // Endereço
+  address        String?
+  city           String?
+  state          String?
+  zipCode        String?
+  
+  // Dados Antropométricos
+  weight         Float?
+  height         Float?
+  bmi            Float?
+  bodyFat        Float?
+  muscleMass     Float?
+  waistCircumference Float?
+  hipCircumference   Float?
+  
+  // Dados Clínicos
+  bloodType      String?
+  allergies      String?
+  chronicDiseases String?
+  medications    String?
+  foodRestrictions String?
+  familyHistory  String?
+  
+  // Estilo de Vida
+  physicalActivity String?
+  smokingStatus    String?
+  alcoholConsumption String?
+  sleepHours       Float?
+  stressLevel      String?
+  
+  // Objetivos e Observações
+  goals          String?
+  observations   String?
+  lastConsultationDate DateTime?
+  
+  // Enabled Features (JSON)
+  enabledFeatures Json @default("{\"ONLINE_CONSULTATIONS\":false,\"DAILY_MEAL_PLAN\":false,\"EXERCISE_LIBRARY\":false,\"DIRECT_CHAT\":false,\"PROGRESS_TRACKING\":true,\"RECIPES\":false,\"SHOPPING_LIST\":false,\"WATER_REMINDER\":true,\"MEAL_PHOTOS\":false}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nutritionist       Nutritionist?      @relation(fields: [nutritionistId], references: [id])
+  appointments       Appointment[]
+  dailyMealPlans     DailyMealPlan[]
+  weeklyMealPlans    WeeklyMealPlan[]
+  progressEntries    ProgressEntry[]
+  scheduledFeatures  ScheduledFeature[]
+  conversations      Conversation[]
+  consultationNotes  ConsultationNote[]
+
+  @@map("patients")
+}
+
+// ============================================
+// NUTRITIONIST
+// ============================================
+
+model Nutritionist {
+  id             String  @id @default(uuid())
+  userId         String  @unique
+  specialization String?
+  crn            String? // Registro profissional
+  
+  // Availability (JSON)
+  availability Json @default("{\"monday\":{\"isAvailable\":false,\"slots\":[]},\"tuesday\":{\"isAvailable\":false,\"slots\":[]},\"wednesday\":{\"isAvailable\":false,\"slots\":[]},\"thursday\":{\"isAvailable\":false,\"slots\":[]},\"friday\":{\"isAvailable\":false,\"slots\":[]},\"saturday\":{\"isAvailable\":false,\"slots\":[]},\"sunday\":{\"isAvailable\":false,\"slots\":[]}}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  patients        Patient[]
+  appointments    Appointment[]
+  recipes         Recipe[]
+  exercises       Exercise[]
+  conversations   Conversation[]
+
+  @@map("nutritionists")
+}
+
+// ============================================
+// FEATURES
+// ============================================
+
+model ScheduledFeature {
+  id          String   @id @default(uuid())
+  patientId   String
+  featureKey  String
+  releaseDate DateTime
+  isReleased  Boolean  @default(false)
+  releasedAt  DateTime?
+  note        String?
+  createdAt   DateTime @default(now())
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("scheduled_features")
+}
+
+// ============================================
+// APPOINTMENTS
+// ============================================
+
+model Appointment {
+  id             String            @id @default(uuid())
+  patientId      String
+  nutritionistId String
+  dateTime       DateTime
+  duration       Int               @default(60) // minutes
+  status         AppointmentStatus @default(SCHEDULED)
+  notes          String?
+  videoRoomUrl   String?
+  reminderSent   Boolean           @default(false)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  patient      Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  nutritionist Nutritionist @relation(fields: [nutritionistId], references: [id])
+
+  @@map("appointments")
+}
+
+// ============================================
+// CONSULTATION NOTES
+// ============================================
+
+model ConsultationNote {
+  id             String   @id @default(uuid())
+  patientId      String
+  appointmentId  String?
+  nutritionistId String
+  
+  // Avaliação
+  currentWeight     Float?
+  currentHeight     Float?
+  currentBMI        Float?
+  bloodPressure     String?
+  heartRate         Int?
+  bodyComposition   Json?   // { bodyFat, muscleMass, visceral Fat, etc }
+  
+  // Anamnese
+  complaints        String?
+  symptoms          String?
+  dietaryRecall     String?
+  physicalActivity  String?
+  
+  // Diagnóstico Nutricional
+  diagnosis         String?
+  
+  // Plano de Tratamento
+  nutritionalPlan   String?
+  recommendations   String?
+  goals             String?
+  restrictions      String?
+  
+  // Prescrições
+  dietPrescription  String?
+  supplementation   String?
+  
+  // Próximas Etapas
+  nextAppointment   DateTime?
+  followUpNotes     String?
+  
+  // Anexos (JSON array de URLs)
+  attachments       Json?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("consultation_notes")
+}
+
+// ============================================
+// MEAL PLANS
+// ============================================
+
+model Food {
+  id          String @id @default(uuid())
+  name        String
+  category    String
+  servingSize String
+  imageUrl    String?
+
+  // Nutrition (JSON)
+  nutrition Json // { calories, protein, carbs, fats, fiber, sodium }
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  recipeIngredients RecipeIngredient[]
+
+  @@map("foods")
+}
+
+model Recipe {
+  id             String       @id @default(uuid())
+  name           String
+  description    String
+  instructions   String[] // Array of steps
+  prepTime       Int // minutes
+  category       MealCategory
+  imageUrl       String?
+  createdBy      String
+
+  // Nutrition (JSON)
+  nutrition Json // { calories, protein, carbs, fats, fiber, sodium }
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  nutritionist   Nutritionist       @relation(fields: [createdBy], references: [id])
+  ingredients    RecipeIngredient[]
+  mealPlanItems  MealPlanItem[]
+
+  @@map("recipes")
+}
+
+model RecipeIngredient {
+  id       String @id @default(uuid())
+  recipeId String
+  foodId   String
+  quantity Float
+  unit     String
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  food   Food   @relation(fields: [foodId], references: [id])
+
+  @@map("recipe_ingredients")
+}
+
+model DailyMealPlan {
+  id        String   @id @default(uuid())
+  patientId String
+  date      DateTime
+  notes     String?
+
+  // Total Nutrition (JSON)
+  totalNutrition Json // { calories, protein, carbs, fats, fiber, sodium }
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  patient Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  meals   MealPlanItem[]
+
+  @@map("daily_meal_plans")
+}
+
+model MealPlanItem {
+  id            String       @id @default(uuid())
+  planId        String
+  recipeId      String
+  category      MealCategory
+  time          String // HH:mm format
+  isConsumed    Boolean      @default(false)
+  consumedAt    DateTime?
+  notes         String?
+
+  plan   DailyMealPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  recipe Recipe        @relation(fields: [recipeId], references: [id])
+
+  @@map("meal_plan_items")
+}
+
+model WeeklyMealPlan {
+  id        String   @id @default(uuid())
+  patientId String
+  weekStart DateTime
+  weekEnd   DateTime
+  createdBy String
+
+  // Daily Plans (JSON array of DailyMealPlan IDs)
+  dailyPlanIds String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("weekly_meal_plans")
+}
+
+// ============================================
+// EXERCISES
+// ============================================
+
+model Exercise {
+  id             String           @id @default(uuid())
+  name           String
+  description    String
+  category       ExerciseCategory
+  duration       Int // minutes
+  difficulty     String // BEGINNER, INTERMEDIATE, ADVANCED
+  videoUrl       String?
+  thumbnailUrl   String?
+  instructions   String[]
+  caloriesBurned Int?
+  createdBy      String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  nutritionist Nutritionist @relation(fields: [createdBy], references: [id])
+
+  @@map("exercises")
+}
+
+// ============================================
+// CHAT
+// ============================================
+
+model Conversation {
+  id             String   @id @default(uuid())
+  patientId      String
+  nutritionistId String
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  patient      Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  nutritionist Nutritionist @relation(fields: [nutritionistId], references: [id])
+  messages     Message[]
+
+  @@map("conversations")
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  conversationId String
+  senderId       String
+  content        String
+  type           String   @default("TEXT") // TEXT, IMAGE, FILE
+  fileUrl        String?
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation("SentMessages", fields: [senderId], references: [id])
+
+  @@map("messages")
+}
+
+// ============================================
+// PROGRESS TRACKING
+// ============================================
+
+model ProgressEntry {
+  id         String    @id @default(uuid())
+  patientId  String
+  date       DateTime  @default(now())
+  weight     Float?
+  bodyFat    Float?
+  muscleMass Float?
+  waist      Float?
+  hip        Float?
+  chest      Float?
+  photos     String[] // Array of URLs
+  notes      String?
+  createdAt  DateTime  @default(now())
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("progress_entries")
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  title     String
+  body      String
+  type      NotificationType
+  data      Json?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// ============================================
+// SECURITY & AUDIT (LGPD)
+// ============================================
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  userId        String
+  action        String   // CREATE, READ, UPDATE, DELETE, LOGIN, LOGOUT, etc
+  resource      String   // User, Patient, Appointment, etc
+  resourceId    String?
+  ipAddress     String?
+  userAgent     String?
+  metadata      Json?    // Dados adicionais
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model DataExportRequest {
+  id          String   @id @default(uuid())
+  userId      String
+  email       String
+  status      String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  fileUrl     String?
+  expiresAt   DateTime?
+  requestedAt DateTime @default(now())
+  completedAt DateTime?
+
+  @@map("data_export_requests")
+}
+
+model DataDeletionRequest {
+  id          String   @id @default(uuid())
+  userId      String
+  email       String
+  reason      String?
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED, COMPLETED
+  requestedAt DateTime @default(now())
+  completedAt DateTime?
+  approvedBy  String?
+
+  @@map("data_deletion_requests")
+}
+
