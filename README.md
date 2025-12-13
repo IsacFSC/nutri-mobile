@@ -1,112 +1,319 @@
-# Nutri Mobile
+# 🥗 Nutri Mobile
 
-Sistema de acompanhamento nutricional com controle granular de recursos para nutricionistas e pacientes.
+**Sistema completo de acompanhamento nutricional com segurança MFA e conformidade LGPD**
 
-## 📋 Descrição
+Aplicação mobile desenvolvida em React Native/Expo que conecta nutricionistas e pacientes através de uma plataforma segura, permitindo gestão de planos alimentares, consultas, e acompanhamento de progresso com controle granular de recursos por paciente.
 
-Nutri Mobile é uma aplicação móvel desenvolvida em React Native/Expo que permite aos nutricionistas gerenciar seus pacientes e controlar individualmente quais recursos cada paciente tem acesso. Os pacientes podem acompanhar seus planos alimentares, agendar consultas e monitorar seu progresso.
+## 📋 Sobre o Projeto
 
-## 🎯 Principais Funcionalidades
+Nutri Mobile é uma solução moderna para profissionais de nutrição que buscam digitalizar e otimizar o atendimento aos seus pacientes. Com autenticação rigorosa (MFA), conformidade total com a LGPD e recursos personalizáveis por paciente, oferece uma experiência segura e personalizada para ambos os perfis de usuário.
 
-### Módulo Administrador (Nutricionista)
+## 👨‍⚕️ Recursos para Nutricionistas
 
-#### RF Admin 1.0 - Controle de Acesso a Recursos
-- Gerenciamento de lista mestra de recursos disponíveis
-- Recursos incluem: Consultas Online, Plano Alimentar, Biblioteca de Exercícios, Chat Direto, etc.
+### Gestão de Pacientes
+- **Cadastro completo de pacientes** com dados antropométricos, histórico médico e objetivos
+- **Controle granular de recursos** - ative/desative funcionalidades individualmente para cada paciente
+- **Dashboard com estatísticas** - visualize pacientes ativos, consultas do dia e métricas importantes
+- **Gestão de planos personalizados** - crie planos Básico, Premium ou totalmente customizados
 
-#### RF Admin 1.1 - Ativação por Paciente
-- Visualização de todos os pacientes
-- Toggles individuais para ativar/desativar recursos por paciente
-- Controle granular de acesso
+### Planos Alimentares
+- **Criação de cardápios semanais** com receitas personalizadas
+- **Biblioteca de receitas** com informações nutricionais completas
+- **Cálculo automático de macros** e calorias por refeição
+- **Exportação de planos** em PDF para impressão
 
-#### RF Admin 1.2 - Agendamento de Liberação
-- Agendar liberação automática de recursos
-- Exemplo: "Liberar Plano Alimentar Fase 2 após consulta de retorno"
+### Agendamento e Consultas
+- **Definição de disponibilidade** - configure horários de trabalho e pausas
+- **Agenda integrada** - visualize todas as consultas agendadas
+- **Consultas online** - integração com plataforma de vídeo conferência
+- **Notificações automáticas** - lembretes para nutricionista e paciente
 
-#### RF Admin 1.3 - Gestão de Planos
-- Criação de planos (Básico, Premium, Custom)
-- Conjuntos predefinidos de recursos por plano
-- Aplicação de planos a pacientes
+### Acompanhamento
+- **Histórico completo** de evolução do paciente (peso, medidas, fotos)
+- **Gráficos de progresso** - visualize a evolução ao longo do tempo
+- **Anotações e observações** - registre informações importantes sobre cada consulta
+- **Chat direto** - comunicação assíncrona com pacientes
 
-### Módulo de Agendamento
+### Segurança MFA
+- **Autenticação de dois fatores** com Google Authenticator
+- **8 códigos de backup** para recuperação de acesso
+- **Geração de QR Code** para configuração inicial
+- **Proteção de dados sensíveis** conforme LGPD
 
-#### RF 2.0 - Definição de Disponibilidade
-- Nutricionista define horários de trabalho
-- Bloqueio de horários de almoço/pausas
-- Configuração por dia da semana
+### Conformidade LGPD
+- **Logs de auditoria** - rastreie todas as ações no sistema
+- **Exportação de dados** - forneça todos os dados do paciente em JSON
+- **Exclusão de dados** - remova completamente informações quando solicitado
+- **Consentimento explícito** para coleta e uso de dados
 
-#### RF 2.1 - Agendamento pelo Paciente
-- Visualização de horários disponíveis
-- Agendamento de consultas (se recurso liberado)
-- Confirmação automática
+---
 
-#### RF 2.2 - Confirmação e Lembretes
-- Notificações push 1 hora antes da consulta
-- Lembretes por email (opcional)
-- Confirmação para ambas as partes
+## 🏥 Recursos para Pacientes
 
-#### RF 2.3 - Sala de Vídeo Conferência
-- Integração com plataforma de vídeo
-- Consultas online dentro do app
-- Gravação de consultas (opcional)
+### Plano Alimentar
+- **Visualização diária e semanal** do cardápio personalizado
+- **Receitas detalhadas** com ingredientes e modo de preparo
+- **Informações nutricionais** - calorias, proteínas, carboidratos e gorduras
+- **Marcar refeições consumidas** - acompanhe sua adesão ao plano
 
-### Módulo de Conteúdo
+### Consultas
+- **Agendamento online** - veja horários disponíveis e agende com facilidade
+- **Consultas por vídeo** - atendimento remoto sem sair de casa
+- **Histórico de consultas** - acesse registros de atendimentos anteriores
+- **Lembretes automáticos** - notificações 1 hora antes da consulta
 
-#### RF 3.0 - Cadastro de Alimentos/Receitas
-- Cadastro de alimentos com informações nutricionais
-- Criação de receitas com ingredientes
-- Categorização (Café da Manhã, Almoço, etc.)
+### Acompanhamento
+- **Registro de progresso** - anote peso, medidas e observações
+- **Upload de fotos** - documente sua evolução visual
+- **Gráficos de evolução** - visualize seu progresso ao longo do tempo
+- **Anotações pessoais** - registre como se sente e dificuldades
 
-#### RF 3.1 - Criação de Plano Alimentar
-- Montagem de planos semanais
-- Drag and drop de receitas
-- Visualização por dia/semana
+### Comunicação
+- **Chat com nutricionista** - tire dúvidas de forma assíncrona
+- **Envio de fotos** - compartilhe fotos de refeições
+- **Notificações** - receba atualizações importantes
 
-#### RF 3.2 - Visualização do Plano
-- Paciente visualiza plano diário e semanal
-- Marcar refeições como consumidas
-- Anotações pessoais
+### Recursos Personalizáveis
+Acesso a recursos adicionais conforme liberação do seu nutricionista:
+- ✅ Consultas Online
+- ✅ Plano Alimentar Diário
+- ✅ Biblioteca de Exercícios
+- ✅ Chat Direto
+---
 
-#### RF 3.3 - Biblioteca de Exercícios
-- Upload de vídeos de exercícios
-- Instruções detalhadas
-- Categorização por tipo
+## 🛠️ Tecnologias e Arquitetura
 
-#### RF 3.4 - Chat/Mensagens
-- Canal de comunicação assíncrona
-- Envio de fotos e arquivos
-- Notificações de novas mensagens
+### Stack Principal
 
-## 🛡️ Requisitos Não Funcionais
+#### **Frontend Mobile**
+- **React Native 0.76.6** - Framework para desenvolvimento cross-platform
+- **Expo SDK 54** - Plataforma de desenvolvimento e build
+- **TypeScript 5.3** - Tipagem estática para maior segurança
+- **Expo Router 6.0** - Navegação baseada em file-system
 
-### RNF 1.0 - Segurança de Dados
-- Criptografia end-to-end
-- Dados de saúde protegidos (LGPD/HIPAA)
-- Autenticação segura (Firebase Auth)
+#### **Backend API**
+- **Node.js 22.x** - Runtime JavaScript server-side
+- **Express 4.21** - Framework web minimalista e robusto
+- **TypeScript 5.7** - Tipagem no backend para consistência
 
-### RNF 1.1 - Performance
-- Carregamento rápido mesmo em conexões lentas
-- Cache de dados offline
-- Otimização de imagens
+#### **Banco de Dados**
+- **PostgreSQL 15+** - Banco relacional robusto e escalável
+- **Neon Database** - PostgreSQL serverless para cloud
+- **Prisma ORM 5.22** - ORM type-safe com migrações automáticas
 
-### RNF 1.2 - Compatibilidade
-- iOS e Android
-- Responsivo para tablets
-- Suporte a diferentes tamanhos de tela
+#### **Gerenciamento de Estado**
+- **Zustand 5.0** - State management leve e performático
+- **AsyncStorage** - Persistência local de dados
 
-### RNF 1.3 - Autenticação Segura
-- Firebase Authentication
-- Recuperação de senha
-- Verificação de email
+### Segurança e Autenticação
 
-## 🚀 Tecnologias Utilizadas
+#### **Sistema MFA (Multi-Factor Authentication)**
+- **Speakeasy 2.0** - Geração e validação de TOTP (Time-based One-Time Password)
+- **QRCode 1.5** - Geração de QR Codes para Google Authenticator
+- **JWT (JSON Web Tokens)** - Tokens de acesso (1h) e refresh (7d)
+- **bcrypt 5.1** - Hash seguro de senhas com salt
 
-- **React Native** - Framework para desenvolvimento mobile
-- **Expo** - Plataforma de desenvolvimento
-- **TypeScript** - Tipagem estática
-- **Firebase** - Backend as a Service
-  - Authentication
-  - Firestore (Database)
+---
+
+## 🔐 Segurança em Detalhes
+
+### Sistema MFA Completo
+
+**Tecnologias:**
+- `speakeasy` - Gerador TOTP compatível com RFC 6238
+- `qrcode` - Geração de QR Codes para apps autenticadores
+- Google Authenticator, Authy, Microsoft Authenticator compatíveis
+
+**Funcionalidades:**
+1. **Setup Inicial** - Geração de secret key única por usuário
+2. **QR Code** - Escaneável por apps autenticadores padrão
+---
+
+## 📁 Estrutura do Projeto
+
+```
+nutri-mobile/
+├── app/                          # Rotas do aplicativo (Expo Router)
+│   ├── (tabs)/                  # Navegação por abas
+│   │   ├── _layout.tsx          # Layout das tabs
+│   │   ├── index.tsx            # Dashboard inicial
+│   │   ├── meal-plan.tsx        # Plano alimentar do paciente
+│   │   ├── appointments.tsx     # Consultas e agendamentos
+│   │   ├── patients.tsx         # Lista de pacientes (Nutricionista)
+│   │   ├── recipes.tsx          # Biblioteca de receitas
+│   │   ├── schedule.tsx         # Agenda do nutricionista
+│   │   └── profile.tsx          # Perfil e configurações
+│   ├── _layout.tsx              # Layout global com proteção de rotas
+│   ├── index.tsx                # Redirecionamento inicial
+│   ├── login.tsx                # Tela de login
+│   ├── register.tsx             # Cadastro de usuário
+│   ├── reset-password.tsx       # Recuperação de senha
+│   └── new-patient.tsx          # Cadastro de novo paciente
+│
+├── api/                         # Backend Node.js + Express
+│   ├── prisma/
+│   │   ├── schema.prisma        # Schema do banco de dados
+│   │   ├── migrations/          # Migrations versionadas
+│   │   └── seed-patient.ts      # Dados de teste
+│   ├── src/
+│   │   ├── controllers/         # Lógica de negócio
+│   │   │   ├── auth.controller.ts
+│   │   │   ├── mfa.controller.ts
+│   │   │   ├── patient.controller.ts
+│   │   │   ├── appointment.controller.ts
+│   │   │   ├── mealPlan.controller.ts
+│   │   │   ├── recipe.controller.ts
+│   │   │   ├── upload.controller.ts
+│   │   │   └── user.controller.ts
+│   │   ├── middlewares/         # Middlewares de autenticação
+│   │   │   ├── auth.middleware.ts
+│   │   │   └── upload.middleware.ts
+│   │   ├── routes/              # Rotas da API
+│   │   │   ├── auth.routes.ts
+│   │   │   ├── mfa.routes.ts
+│   │   │   ├── lgpd.routes.ts
+│   │   │   ├── patient.routes.ts
+│   │   │   └── ...
+│   │   ├── @types/              # Type declarations
+│   │   │   └── speakeasy.d.ts
+│   │   └── index.ts             # Entry point da API
+│   ├── uploads/                 # Arquivos enviados (avatares, fotos)
+│   ├── package.json
+│   └── tsconfig.json
+│
+├── src/                         # Source do app mobile
+│   ├── components/
+│   │   ├── common/              # Componentes reutilizáveis
+│   │   │   ├── Button.tsx
+│   │   │   ├── Input.tsx
+│   │   │   ├── Card.tsx
+│   │   │   ├── Loading.tsx
+│   │   │   └── ProtectedRoute.tsx
+│   │   └── admin/               # Componentes do nutricionista
+│   │       ├── FeatureControlPanel.tsx
+│   │       ├── PatientCard.tsx
+│   │       └── PatientList.tsx
+│   ├── services/                # Camada de API
+│   │   ├── auth.service.ts
+3. **Configure o banco de dados**
+
+Crie uma conta no [Neon](https://neon.tech) e obtenha a connection string PostgreSQL.
+
+4. **Configure as variáveis de ambiente**
+
+**API (`api/.env`):**
+```env
+DATABASE_URL="postgresql://usuario:senha@host:5432/nutrimobile"
+JWT_SECRET="seu-secret-super-seguro-aqui"
+JWT_REFRESH_SECRET="outro-secret-ainda-mais-seguro"
+JWT_EXPIRES_IN="1h"
+JWT_REFRESH_EXPIRES_IN="7d"
+PORT=3000
+NODE_ENV="development"
+```
+
+5. **Execute as migrações do banco**
+```bash
+cd api
+npx prisma generate
+npx prisma migrate deploy
+npm run seed  # Cria usuários de teste
+```emplate de variáveis de ambiente
+6. **Inicie a API**
+```bash
+cd api
+npm run dev
+# API rodando em http://localhost:3000
+```
+
+7. **Inicie o app mobile** (em outro terminal)
+```bash
+cd ..
+npm start
+# ou npx expo start
+```
+
+8. **Execute no dispositivo**
+```bash
+# Android
+npm run android
+
+# iOS (apenas macOS)
+npm run ios
+
+# Web (testes)
+npm run web
+```
+
+### Usuários de Teste
+
+Após rodar o seed script, você terá:
+
+**Paciente:**
+- Email: `paciente@teste.com`
+- Senha: `123456`
+
+**Nutricionista:**
+- Email: `nutricionista@teste.com`
+- Senha: `123456`i/recipes/*        # Receitas e cardápios
+---
+
+## 📊 API Endpoints
+
+### Autenticação e Segurança
+```
+POST   /api/auth/register           # Criar conta
+POST   /api/auth/login              # Login
+POST   /api/auth/refresh            # Renovar token
+POST   /api/auth/reset-password     # Recuperar senha
+
+POST   /api/mfa/setup               # Configurar MFA
+POST   /api/mfa/validate            # Validar código TOTP
+GET    /api/mfa/backup-codes        # Gerar códigos de backup
+POST   /api/mfa/disable             # Desativar MFA
+```
+
+### LGPD
+```
+GET    /api/lgpd/audit-logs         # Logs de auditoria
+GET    /api/lgpd/export-data        # Exportar dados
+POST   /api/lgpd/delete-account     # Excluir conta
+GET    /api/lgpd/data-usage         # Relatório de uso
+```
+
+### Gestão de Pacientes
+```
+GET    /api/patients                # Listar pacientes
+POST   /api/patients                # Criar paciente
+GET    /api/patients/:id            # Detalhes do paciente
+PUT    /api/patients/:id            # Atualizar paciente
+DELETE /api/patients/:id            # Excluir paciente
+```
+
+### Consultas
+```
+GET    /api/appointments            # Listar consultas
+POST   /api/appointments            # Agendar consulta
+PUT    /api/appointments/:id        # Atualizar consulta
+DELETE /api/appointments/:id        # Cancelar consulta
+```
+
+### Planos Alimentares
+```
+GET    /api/meal-plans              # Listar planos
+POST   /api/meal-plans              # Criar plano
+GET    /api/meal-plans/:id          # Detalhes do plano
+PUT    /api/meal-plans/:id          # Atualizar plano
+DELETE /api/meal-plans/:id          # Excluir plano
+```
+
+### Upload
+```
+POST   /api/upload/avatar           # Upload de avatar
+POST   /api/upload/progress-photo   # Upload de foto de progresso
+```
+
+Documentação completa: `API_STATUS.md` Firestore (Database)
   - Storage
   - Cloud Functions (futuro)
 - **Zustand** - Gerenciamento de estado
@@ -152,18 +359,114 @@ nutri-mobile/
 │   │   └── index.ts
 │   ├── constants/            # Constantes e configurações
 │   │   └── index.ts
-│   └── utils/                # Funções utilitárias
-├── assets/                   # Imagens, fontes, etc.
-├── .env.example             # Exemplo de variáveis de ambiente
-├── app.json                 # Configuração do Expo
-├── package.json
-└── tsconfig.json
+---
+
+## 🚀 Deploy
+
+### App Mobile
+```bash
+# Build de desenvolvimento
+eas build --profile development --platform android
+
+# Build APK para testes
+eas build --profile preview --platform android
+
+# Build de produção
+eas build --profile production --platform all
 ```
 
-## 🔧 Instalação
+### API Backend
+Veja guia completo em `DEPLOYMENT.md`
 
-### Pré-requisitos
+**Opções de deploy:**
+- VPS (AWS, DigitalOcean, Linode)
+- Heroku
+- Railway
+---
 
+## 🤝 Contribuição
+
+Contribuições são bem-vindas! Para contribuir:
+
+1. Fork o projeto
+2. Crie uma branch: `git checkout -b feature/nova-feature`
+3. Commit: `git commit -m 'feat: Adiciona nova feature'`
+4. Push: `git push origin feature/nova-feature`
+5. Abra um Pull Request
+
+**Padrões de Commit:**
+- `feat:` Nova funcionalidade
+- `fix:` Correção de bug
+- `docs:` Documentação
+- `style:` Formatação
+- `refactor:` Refatoração
+- `test:` Testes
+- `chore:` Manutenção
+
+---
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para detalhes.
+
+---
+
+## 👨‍💻 Autor
+
+**Isac FSC**
+- GitHub: [@IsacFSC](https://github.com/IsacFSC)
+- Repository: [nutri-mobile](https://github.com/IsacFSC/nutri-mobile)
+
+---
+
+## 📚 Documentação Adicional
+
+- [AUTENTICACAO.md](AUTENTICACAO.md) - Sistema de autenticação detalhado
+- [SECURITY_MFA_LGPD.md](SECURITY_MFA_LGPD.md) - Segurança e conformidade
+- [DEPLOYMENT.md](DEPLOYMENT.md) - Guia de deploy completo
+- [API_STATUS.md](API_STATUS.md) - Status dos endpoints
+- [ASSETS_NEEDED.md](ASSETS_NEEDED.md) - Como criar assets do app
+
+---
+
+## 🔖 Versão
+
+**v1.0.0** - Dezembro 2025
+- ✅ Sistema completo de autenticação
+- ✅ MFA com Google Authenticator
+- ✅ Conformidade LGPD total
+- ✅ 11 endpoints de segurança
+- ✅ Painéis completos (Nutricionista/Paciente)
+- ✅ Pronto para produção
+
+---
+
+<div align="center">
+
+**Desenvolvido com ❤️ e ☕ para revolucionar o atendimento nutricional**
+
+[⬆ Voltar ao topo](#-nutri-mobile)
+
+</div>
+- [x] Gestão de consultas
+- [x] Planos alimentares
+- [x] Upload de imagens
+- [x] Controle de recursos por paciente
+
+### Fase 2 - Em Desenvolvimento 🚧
+- [ ] Notificações push
+- [ ] Integração com vídeo conferência
+- [ ] Gráficos de progresso
+- [ ] Exportação de relatórios PDF
+- [ ] Chat em tempo real
+
+### Fase 3 - Futuro 📅
+- [ ] Sistema de pagamentos (Stripe/PagSeguro)
+- [ ] Modo offline com sincronização
+- [ ] Múltiplos idiomas (i18n)
+- [ ] Dark mode
+- [ ] Integração com wearables (Apple Health/Google Fit)
+- [ ] IA para sugestões de cardápios
 - Node.js (v16 ou superior)
 - npm ou yarn
 - Expo CLI
