@@ -158,7 +158,6 @@ export default function VideoCallScreen() {
         startInLoadingState={true}
         mixedContentMode="always"
         setSupportMultipleWindows={false}
-        mediaPlaybackRequiresUserGesture={false}
         allowsFullscreenVideo={true}
         cacheEnabled={false}
         onLoadStart={() => console.log('[VideoCall] WebView: Iniciando carregamento...')}
