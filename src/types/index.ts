@@ -135,13 +135,36 @@ export interface Appointment {
   id: string;
   patientId: string;
   nutritionistId: string;
-  dateTime: Date;
+  dateTime: string;
   duration: number; // em minutos
   status: AppointmentStatus;
+  type: 'ONLINE' | 'PRESENCIAL' | 'RETORNO';
   notes?: string;
   videoRoomUrl?: string;
   reminderSent: boolean;
-  createdAt: Date;
+  createdAt: string;
+  patient: {
+    id: string;
+    user: {
+      id: string;
+      name: string;
+      email: string;
+      avatar: string | null;
+    };
+  };
+  nutritionist: {
+    id: string;
+    user: {
+      id: string;
+      name: string;
+      email: string;
+      avatar: string | null;
+    };
+  };
+  conversation?: {
+    id: string;
+    status: string;
+  };
 }
 
 // Meal Plan Types

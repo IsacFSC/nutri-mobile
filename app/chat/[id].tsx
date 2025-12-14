@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Linking,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -67,7 +68,9 @@ export default function ChatScreen() {
   const [canStart, setCanStart] = useState(false);
   const [timeUntilStart, setTimeUntilStart] = useState('');
   const flatListRef = useRef<FlatList>(null);
-  const pollInterval = useRef<NodeJS.Timeout>();
+  const pollInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const videoCallCheckInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const notifiedVideoCallId = useRef<string | null>(null);
 
   useEffect(() => {
     loadConversation();
@@ -78,9 +81,17 @@ export default function ChatScreen() {
       loadConversation(true);
     }, 3000);
 
+    // Poll de videochamadas ativas a cada 2 segundos
+    videoCallCheckInterval.current = setInterval(() => {
+      checkActiveVideoCall();
+    }, 2000);
+
     return () => {
       if (pollInterval.current) {
         clearInterval(pollInterval.current);
+      }
+      if (videoCallCheckInterval.current) {
+        clearInterval(videoCallCheckInterval.current);
       }
     };
   }, [id]);
@@ -88,13 +99,17 @@ export default function ChatScreen() {
   const loadConversation = async (silent = false) => {
     try {
       if (!silent) setLoading(true);
+      console.log(`[Chat] Loading conversation ${id}`);
       const response = await api.get(`/conversations/${id}`);
+      console.log(`[Chat] Conversation loaded:`, response.data);
       setConversation(response.data);
       setMessages(response.data.messages || []);
-    } catch (error) {
-      console.error('Erro ao carregar conversa:', error);
+    } catch (error: any) {
+      console.error('[Chat] Erro ao carregar conversa:', error);
+      console.error('[Chat] Error details:', error?.response?.data);
       if (!silent) {
-        Alert.alert('Erro', 'Não foi possível carregar a conversa');
+        const errorMessage = error?.response?.data?.error || 'Não foi possível carregar a conversa';
+        Alert.alert('Erro', errorMessage);
       }
     } finally {
       if (!silent) setLoading(false);
@@ -119,6 +134,83 @@ export default function ChatScreen() {
     } catch (error) {
       console.error('Erro ao verificar horário:', error);
     }
+  };
+
+  const checkActiveVideoCall = async () => {
+    try {
+      const response = await api.get(`/video-calls/conversation/${id}/active`);
+      const activeCall = response.data.videoCall;
+
+      if (activeCall && activeCall.initiatedBy !== user?.id && notifiedVideoCallId.current !== activeCall.id) {
+        // Marcar como notificado
+        notifiedVideoCallId.current = activeCall.id;
+        
+        // Outra pessoa iniciou a chamada - mostrar notificação
+        Alert.alert(
+          '📹 Videochamada Iniciada',
+          `${user?.role === 'NUTRITIONIST' ? 'O paciente' : 'A nutricionista'} iniciou uma videochamada. Deseja participar?`,
+          [
+            {
+              text: 'Agora não',
+              style: 'cancel',
+              onPress: () => {
+                // Reiniciar polling após recusar
+                notifiedVideoCallId.current = null;
+              }
+            },
+            {
+              text: 'Entrar',
+              onPress: () => {
+                router.push(`/video-call/${id}`);
+              },
+            },
+          ],
+          { cancelable: false }
+        );
+      }
+      
+      // Se não há mais chamada ativa, resetar notificação
+      if (!activeCall) {
+        notifiedVideoCallId.current = null;
+      }
+    } catch (error) {
+      // Erro silencioso - não precisa mostrar ao usuário
+    }
+  };
+
+  const handleEndConversation = () => {
+    Alert.alert(
+      'Encerrar Consulta',
+      'Tem certeza que deseja encerrar esta consulta? Esta ação não pode ser desfeita.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Encerrar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.put(`/conversations/${id}/end`);
+              
+              // Atualizar status da consulta também
+              if (conversation?.appointment) {
+                await api.put(`/appointments/${conversation.appointment.id}`, {
+                  status: 'COMPLETED',
+                });
+              }
+              
+              Alert.alert(
+                'Consulta Encerrada',
+                'A consulta foi encerrada com sucesso!',
+                [{ text: 'OK', onPress: () => router.back() }]
+              );
+            } catch (error) {
+              console.error('Erro ao encerrar consulta:', error);
+              Alert.alert('Erro', 'Não foi possível encerrar a consulta');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleSendMessage = async () => {
@@ -155,35 +247,41 @@ export default function ChatScreen() {
     }
   };
 
-  const handleEndConversation = () => {
-    Alert.alert(
-      'Finalizar Consulta',
-      'Deseja realmente finalizar esta consulta? Esta ação não pode ser desfeita.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Finalizar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await api.put(`/conversations/${id}/end`);
-              Alert.alert('Sucesso', 'Consulta finalizada', [
-                { text: 'OK', onPress: () => router.back() },
-              ]);
-            } catch (error) {
-              Alert.alert('Erro', 'Não foi possível finalizar a consulta');
-            }
-          },
-        },
-      ]
-    );
-  };
-
   const getOtherUser = () => {
     if (!conversation) return null;
     return user?.role === 'NUTRITIONIST'
       ? conversation.patient.user
       : conversation.nutritionist.user;
+  };
+
+  // Função para detectar e renderizar links
+  const renderMessageContent = (content: string, isMyMessage: boolean) => {
+    // Regex para detectar URLs
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = content.split(urlRegex);
+
+    return (
+      <Text style={[styles.messageText, isMyMessage && styles.myMessageText]}>
+        {parts.map((part, index) => {
+          if (part.match(urlRegex)) {
+            return (
+              <Text
+                key={index}
+                style={styles.linkText}
+                onPress={() => {
+                  Linking.openURL(part).catch((err) =>
+                    Alert.alert('Erro', 'Não foi possível abrir o link')
+                  );
+                }}
+              >
+                {part}
+              </Text>
+            );
+          }
+          return part;
+        })}
+      </Text>
+    );
   };
 
   const renderMessage = ({ item }: { item: Message }) => {
@@ -194,9 +292,7 @@ export default function ChatScreen() {
         {!isMyMessage && (
           <Text style={styles.senderName}>{item.sender.name}</Text>
         )}
-        <Text style={[styles.messageText, isMyMessage && styles.myMessageText]}>
-          {item.content}
-        </Text>
+        {renderMessageContent(item.content, isMyMessage)}
         <Text style={[styles.messageTime, isMyMessage && styles.myMessageTime]}>
           {new Date(item.createdAt).toLocaleTimeString('pt-BR', {
             hour: '2-digit',
@@ -261,6 +357,14 @@ export default function ChatScreen() {
             </Text>
           )}
         </View>
+        {isActive && (
+          <TouchableOpacity 
+            onPress={() => router.push(`/video-call/${id}`)} 
+            style={styles.videoButton}
+          >
+            <Ionicons name="videocam" size={24} color={Colors.text.inverse} />
+          </TouchableOpacity>
+        )}
         {user?.role === 'NUTRITIONIST' && isActive && (
           <TouchableOpacity onPress={handleEndConversation} style={styles.endButton}>
             <Ionicons name="checkmark-circle" size={24} color={Colors.text.inverse} />
@@ -337,6 +441,9 @@ const styles = StyleSheet.create({
   backButton: {
     marginRight: Spacing.sm,
   },
+  videoButton: {
+    marginLeft: Spacing.sm,
+  },
   endButton: {
     marginLeft: Spacing.sm,
   },
@@ -408,6 +515,11 @@ const styles = StyleSheet.create({
   myMessageText: {
     color: Colors.text.inverse,
   },
+  linkText: {
+    ...Typography.body1,
+    color: '#4A90E2',
+    textDecorationLine: 'underline',
+  },
   messageTime: {
     ...Typography.caption,
     color: Colors.text.secondary,
@@ -419,7 +531,9 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flexDirection: 'row',
+    marginBottom: Spacing.sm,
     padding: Spacing.md,
+    paddingBottom: Spacing.xl + Spacing.md,
     backgroundColor: Colors.surface,
     borderTopWidth: 1,
     borderTopColor: Colors.border,

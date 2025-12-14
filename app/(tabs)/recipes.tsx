@@ -158,6 +158,15 @@ export default function RecipesScreen() {
                 <View style={styles.recipeActions}>
                   <TouchableOpacity 
                     style={styles.actionButton}
+                    onPress={() => router.push({
+                      pathname: '/send-recipe-to-patient',
+                      params: { recipeId: recipe.id, recipeName: recipe.name }
+                    })}
+                  >
+                    <Ionicons name="send" size={20} color={Colors.primary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.actionButton}
                     onPress={() => handleDeleteRecipe(recipe.id, recipe.name)}
                   >
                     <Ionicons name="trash" size={20} color={Colors.error} />

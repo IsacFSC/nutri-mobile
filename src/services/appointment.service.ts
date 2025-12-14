@@ -38,10 +38,13 @@ export class AppointmentService {
   static async getAppointments(): Promise<Appointment[]> {
     try {
       const response = await api.get<Appointment[]>('/appointments');
-      return response.data;
+      return response.data || [];
     } catch (error: any) {
+      console.error('AppointmentService.getAppointments error:', error);
       const message = error.response?.data?.error || 'Erro ao buscar consultas';
-      throw new Error(message);
+      const enhancedError: any = new Error(message);
+      enhancedError.response = error.response;
+      throw enhancedError;
     }
   }
 
@@ -106,6 +109,21 @@ export class AppointmentService {
       return response.data;
     } catch (error: any) {
       const message = error.response?.data?.error || 'Erro ao buscar horários disponíveis';
+      throw new Error(message);
+    }
+  }
+
+  /**
+   * Cria uma conversa para uma consulta
+   */
+  static async createConversationForAppointment(appointmentId: string): Promise<{ conversationId: string }> {
+    try {
+      const response = await api.post<{ conversationId: string }>(
+        `/appointments/${appointmentId}/conversation`
+      );
+      return response.data;
+    } catch (error: any) {
+      const message = error.response?.data?.error || 'Erro ao criar conversa';
       throw new Error(message);
     }
   }

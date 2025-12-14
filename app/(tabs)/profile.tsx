@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -6,6 +6,7 @@ import { Card, Button } from '@/src/components/common';
 import { Colors, Typography, Spacing } from '@/src/constants';
 import { useAuthStore } from '@/src/store/authStore';
 import { UserRole } from '@/src/types';
+import DashboardService from '@/src/services/dashboard.service';
 
 interface MenuItem {
   icon: string;
@@ -18,7 +19,36 @@ interface MenuItem {
 export default function ProfileScreen() {
   const { user, logout } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
+  const [stats, setStats] = useState({ patientsCount: 0, appointmentsCount: 0, recipesCount: 0 });
   const isNutritionist = user?.role === UserRole.NUTRITIONIST || user?.role === UserRole.ADMIN;
+
+  useEffect(() => {
+    if (isNutritionist) {
+      loadStats();
+    }
+  }, [isNutritionist]);
+
+  const loadStats = async () => {
+    try {
+      if (user?.role === 'NUTRITIONIST') {
+        const data = await DashboardService.getNutritionistStats();
+        setStats({
+          patientsCount: data.activePatientsCount,
+          appointmentsCount: data.todayAppointmentsCount,
+          recipesCount: data.recipesCount,
+        });
+      } else if (user?.role === 'ADMIN') {
+        const data = await DashboardService.getAdminStats();
+        setStats({
+          patientsCount: data.patientsCount,
+          appointmentsCount: data.totalAppointments,
+          recipesCount: data.recipesCount,
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao carregar estatísticas:', error);
+    }
+  };
 
   const handleLogout = async () => {
     Alert.alert(
@@ -221,17 +251,17 @@ export default function ProfileScreen() {
             <View style={styles.statsGrid}>
               <View style={styles.statItem}>
                 <Ionicons name="people" size={24} color={Colors.primary} />
-                <Text style={styles.statValue}>0</Text>
+                <Text style={styles.statValue}>{stats.patientsCount}</Text>
                 <Text style={styles.statLabel}>Pacientes</Text>
               </View>
               <View style={styles.statItem}>
                 <Ionicons name="calendar" size={24} color={Colors.primary} />
-                <Text style={styles.statValue}>0</Text>
+                <Text style={styles.statValue}>{stats.appointmentsCount}</Text>
                 <Text style={styles.statLabel}>Consultas</Text>
               </View>
               <View style={styles.statItem}>
                 <Ionicons name="restaurant" size={24} color={Colors.primary} />
-                <Text style={styles.statValue}>0</Text>
+                <Text style={styles.statValue}>{stats.recipesCount}</Text>
                 <Text style={styles.statLabel}>Receitas</Text>
               </View>
             </View>

@@ -28,4 +28,11 @@ router.put('/:id', mealPlanController.updateMealPlan);
 // PUT /api/meal-plans/:planId/meals/:mealId/consume - Marcar refeição como consumida
 router.put('/:planId/meals/:mealId/consume', mealPlanController.markMealAsConsumed);
 
+// POST /api/meal-plans/:patientId/add-recipe - Adicionar receita ao plano (Nutritionist)
+router.post(
+  '/:patientId/add-recipe',
+  authorizeRoles('ADMIN', 'NUTRITIONIST'),
+  mealPlanController.addRecipeToMealPlan
+);
+
 export default router;

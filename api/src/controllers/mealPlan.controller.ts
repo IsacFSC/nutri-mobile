@@ -229,3 +229,85 @@ export const markMealAsConsumed = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Erro ao marcar refeição' });
   }
 };
+
+// POST /api/meal-plans/:patientId/add-recipe - Adicionar receita ao plano alimentar do paciente
+export const addRecipeToMealPlan = async (req: AuthRequest, res: Response) => {
+  try {
+    const { patientId } = req.params;
+    const { recipeId, date, mealCategory, time } = req.body;
+
+    // Verificar se a receita existe
+    const recipe = await prisma.recipe.findUnique({
+      where: { id: recipeId },
+    });
+
+    if (!recipe) {
+      return res.status(404).json({ error: 'Receita não encontrada' });
+    }
+
+    // Verificar se o paciente existe
+    const patient = await prisma.patient.findUnique({
+      where: { id: patientId },
+    });
+
+    if (!patient) {
+      return res.status(404).json({ error: 'Paciente não encontrado' });
+    }
+
+    const planDate = new Date(date);
+    planDate.setHours(0, 0, 0, 0);
+
+    // Buscar ou criar plano alimentar para o dia
+    let mealPlan = await prisma.dailyMealPlan.findFirst({
+      where: {
+        patientId,
+        date: planDate,
+      },
+    });
+
+    if (!mealPlan) {
+      // Criar plano com totalNutrition inicial vazio
+      mealPlan = await prisma.dailyMealPlan.create({
+        data: {
+          patientId,
+          date: planDate,
+          totalNutrition: {
+            calories: 0,
+            protein: 0,
+            carbs: 0,
+            fats: 0,
+            fiber: 0,
+            sodium: 0,
+          },
+        },
+      });
+    }
+
+    // Adicionar receita ao plano
+    const mealItem = await prisma.mealPlanItem.create({
+      data: {
+        planId: mealPlan.id,
+        recipeId,
+        category: mealCategory || 'LUNCH',
+        time: time || '12:00',
+        isConsumed: false,
+      },
+      include: {
+        recipe: {
+          include: {
+            ingredients: {
+              include: {
+                food: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    res.status(201).json(mealItem);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Erro ao adicionar receita ao plano alimentar' });
+  }
+};

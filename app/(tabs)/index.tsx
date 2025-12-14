@@ -1,41 +1,110 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/src/store/authStore';
 import { Card, Loading } from '@/src/components/common';
 import { Colors, Typography, Spacing } from '@/src/constants';
 import { UserRole } from '@/src/types';
+import DashboardService, { NutritionistStats, AdminStats } from '@/src/services/dashboard.service';
 
 export default function HomeScreen() {
   const { user, isLoading } = useAuthStore();
+  const [nutritionistStats, setNutritionistStats] = useState<NutritionistStats | null>(null);
+  const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
+  const [loadingStats, setLoadingStats] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
+  // Todas as variáveis derivadas devem ser declaradas antes de early returns
+  const isAdmin = user?.role === UserRole.ADMIN;
+  const isNutritionist = user?.role === UserRole.NUTRITIONIST;
+
+  // Load stats based on user role
+  const loadStats = async () => {
+    try {
+      setLoadingStats(true);
+      if (user?.role === 'NUTRITIONIST') {
+        const data = await DashboardService.getNutritionistStats();
+        console.log('[Dashboard] Stats recebidas:', JSON.stringify(data, null, 2));
+        console.log('[Dashboard] Upcoming appointments:', data.upcomingAppointments?.length || 0);
+        setNutritionistStats(data);
+      } else if (user?.role === 'ADMIN') {
+        const data = await DashboardService.getAdminStats();
+        setAdminStats(data);
+      }
+    } catch (error: any) {
+      console.error('Error loading stats:', error);
+      if (!error?.isAuthError) {
+        Alert.alert('Erro', 'Não foi possível carregar as estatísticas');
+      }
+    } finally {
+      setLoadingStats(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user?.role === 'NUTRITIONIST' || user?.role === 'ADMIN') {
+      loadStats();
+    }
+  }, [user]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadStats();
+  };
+
+  // Early return após todos os hooks
   if (isLoading || !user) {
     return <Loading />;
   }
 
-  const isAdmin = user.role === UserRole.ADMIN;
-  const isNutritionist = user.role === UserRole.NUTRITIONIST;
-
   // ADMIN Dashboard
   if (isAdmin) {
     return (
-      <ScrollView style={styles.container}>
+      <ScrollView 
+        style={styles.container}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         <View style={styles.header}>
           <Text style={styles.greeting}>Olá, {user.name?.split(' ')[0]}!</Text>
           <Text style={styles.role}>Administrador da Plataforma</Text>
         </View>
 
-        <View style={styles.quickStats}>
-          <View style={styles.statCard}>
-            <Ionicons name="business" size={32} color={Colors.primary} />
-            <Text style={styles.statValue}>0</Text>
-            <Text style={styles.statLabel}>Organizações</Text>
+        <View style={styles.adminStatsContainer}>
+          <View style={styles.adminStatsRow}>
+            <View style={styles.adminStatCard}>
+              <Ionicons name="business" size={32} color={Colors.primary} />
+              <Text style={styles.statValue}>
+                {loadingStats ? '...' : adminStats?.organizationsCount || 0}
+              </Text>
+              <Text style={styles.statLabel}>Organizações</Text>
+            </View>
+            <View style={styles.adminStatCard}>
+              <Ionicons name="people" size={32} color={Colors.accent} />
+              <Text style={styles.statValue}>
+                {loadingStats ? '...' : adminStats?.totalNutritionists || 0}
+              </Text>
+              <Text style={styles.statLabel}>Nutricionistas</Text>
+            </View>
           </View>
-          <View style={styles.statCard}>
-            <Ionicons name="people" size={32} color={Colors.accent} />
-            <Text style={styles.statValue}>0</Text>
-            <Text style={styles.statLabel}>Nutricionistas</Text>
+          <View style={styles.adminStatsRow}>
+            <View style={styles.adminStatCard}>
+              <Ionicons name="person" size={32} color={Colors.success} />
+              <Text style={styles.statValue}>
+                {loadingStats ? '...' : adminStats?.patientsCount || 0}
+              </Text>
+              <Text style={styles.statLabel}>Pacientes</Text>
+            </View>
+            <View style={styles.adminStatCard}>
+              <Ionicons name="restaurant" size={32} color={Colors.secondary} />
+              <Text style={styles.statValue}>
+                {loadingStats ? '...' : adminStats?.recipesCount || 0}
+              </Text>
+              <Text style={styles.statLabel}>Receitas</Text>
+            </View>
           </View>
         </View>
 
@@ -92,34 +161,85 @@ export default function HomeScreen() {
   // NUTRITIONIST Dashboard
   if (isNutritionist) {
     return (
-      <ScrollView style={styles.container}>
+      <ScrollView 
+        style={styles.container}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         <View style={styles.header}>
           <Text style={styles.greeting}>Olá, Dr(a). {user.name?.split(' ')[0]}!</Text>
           <Text style={styles.role}>Painel do Nutricionista</Text>
         </View>
 
-        <View style={styles.quickStats}>
-          <View style={styles.statCard}>
+        <View style={styles.nutritionistStats}>
+          <View style={styles.nutritionistStatCard}>
             <Ionicons name="people" size={32} color={Colors.primary} />
-            <Text style={styles.statValue}>0</Text>
+            <Text style={styles.statValue}>
+              {loadingStats ? '...' : nutritionistStats?.activePatientsCount || 0}
+            </Text>
             <Text style={styles.statLabel}>Pacientes Ativos</Text>
           </View>
-          <View style={styles.statCard}>
+          <View style={styles.nutritionistStatCard}>
             <Ionicons name="calendar" size={32} color={Colors.accent} />
-            <Text style={styles.statValue}>0</Text>
+            <Text style={styles.statValue}>
+              {loadingStats ? '...' : nutritionistStats?.todayAppointmentsCount || 0}
+            </Text>
             <Text style={styles.statLabel}>Consultas Hoje</Text>
           </View>
         </View>
 
         <Card style={styles.card}>
-          <View style={styles.cardHeader}>
+          <TouchableOpacity 
+            style={styles.cardHeader}
+            onPress={() => router.push('/(tabs)/appointments')}
+          >
             <Text style={styles.cardTitle}>Próximas Consultas</Text>
             <Text style={styles.cardLink}>Ver todas</Text>
-          </View>
-          <View style={styles.emptyState}>
-            <Ionicons name="calendar-outline" size={48} color={Colors.text.secondary} />
-            <Text style={styles.emptyText}>Nenhuma consulta agendada</Text>
-          </View>
+          </TouchableOpacity>
+          
+          {loadingStats ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>Carregando...</Text>
+            </View>
+          ) : nutritionistStats?.upcomingAppointments && nutritionistStats.upcomingAppointments.length > 0 ? (
+            <View>
+              {nutritionistStats.upcomingAppointments.map((appointment) => (
+                <TouchableOpacity
+                  key={appointment.id}
+                  style={styles.appointmentItem}
+                  onPress={() => router.push(`/chat/${appointment.id}`)}
+                >
+                  <View style={styles.appointmentIcon}>
+                    <Ionicons 
+                      name={appointment.type === 'ONLINE' ? 'videocam' : 'person'} 
+                      size={20} 
+                      color={Colors.primary} 
+                    />
+                  </View>
+                  <View style={styles.appointmentInfo}>
+                    <Text style={styles.appointmentPatient}>
+                      {appointment.patient.user.name}
+                    </Text>
+                    <Text style={styles.appointmentTime}>
+                      {new Date(appointment.dateTime).toLocaleString('pt-BR', {
+                        day: '2-digit',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={Colors.text.secondary} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <Ionicons name="calendar-outline" size={48} color={Colors.text.secondary} />
+              <Text style={styles.emptyText}>Nenhuma consulta agendada</Text>
+            </View>
+          )}
         </Card>
 
         <Card style={styles.card}>
@@ -284,10 +404,41 @@ const styles = StyleSheet.create({
   },
   quickStats: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     padding: Spacing.md,
     gap: Spacing.md,
   },
   statCard: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: Colors.surface,
+    padding: Spacing.lg,
+    borderRadius: 12,
+    alignItems: 'center',
+    elevation: 2,
+  },
+  nutritionistStats: {
+    flexDirection: 'row',
+    padding: Spacing.md,
+    gap: Spacing.md,
+  },
+  nutritionistStatCard: {
+    flex: 1,
+    backgroundColor: Colors.surface,
+    padding: Spacing.lg,
+    borderRadius: 12,
+    alignItems: 'center',
+    elevation: 2,
+  },
+  adminStatsContainer: {
+    padding: Spacing.md,
+    gap: Spacing.md,
+  },
+  adminStatsRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  adminStatCard: {
     flex: 1,
     backgroundColor: Colors.surface,
     padding: Spacing.lg,
@@ -367,5 +518,34 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     fontWeight: '500',
     textAlign: 'center',
+  },
+  appointmentItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  appointmentIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+  },
+  appointmentInfo: {
+    flex: 1,
+  },
+  appointmentPatient: {
+    ...Typography.body1,
+    color: Colors.text.primary,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  appointmentTime: {
+    ...Typography.caption,
+    color: Colors.text.secondary,
   },
 });

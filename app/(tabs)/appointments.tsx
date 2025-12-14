@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Card, Loading } from '@/src/components/common';
 import { Colors, Typography, Spacing } from '@/src/constants';
@@ -184,7 +185,10 @@ export default function AppointmentsScreen() {
               <Text style={styles.emptyText}>
                 Você ainda não possui consultas agendadas.
               </Text>
-              <TouchableOpacity style={styles.scheduleButton}>
+              <TouchableOpacity 
+                style={styles.scheduleButton}
+                onPress={() => router.push('/schedule-appointment')}
+              >
                 <Ionicons name="add-circle" size={20} color="#FFFFFF" />
                 <Text style={styles.scheduleButtonText}>Agendar Consulta</Text>
               </TouchableOpacity>
@@ -370,6 +374,16 @@ export default function AppointmentsScreen() {
           </>
         )}
       </ScrollView>
+
+      {/* Botão Flutuante para Agendar */}
+      {user?.role === 'PATIENT' && (
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={() => router.push('/schedule-appointment')}
+        >
+          <Ionicons name="add" size={28} color="#FFFFFF" />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -533,5 +547,21 @@ const styles = StyleSheet.create({
     ...Typography.button,
     color: '#FFFFFF',
     marginLeft: Spacing.sm,
+  },
+  fab: {
+    position: 'absolute',
+    right: Spacing.lg,
+    bottom: Spacing.lg,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
 });

@@ -56,10 +56,14 @@ export default function PatientList({ onPatientPress }: PatientListProps) {
         return;
       }
 
-      // Se for ADMIN, usa a rota /all, senão usa a rota do nutricionista
-      const endpoint = user.role === 'ADMIN' 
-        ? '/patients/all'
-        : `/patients/nutritionist/${user.id}`;
+      // Se for ADMIN, usa a rota /all
+      // Se for NUTRITIONIST, busca pacientes que agendaram consultas com ele
+      let endpoint = '/patients/all';
+      
+      if (user.role === 'NUTRITIONIST') {
+        // Buscar pacientes através das consultas agendadas
+        endpoint = `/patients/nutritionist/${user.id}`;
+      }
 
       const response = await api.get(endpoint, {
         params: {
@@ -77,9 +81,27 @@ export default function PatientList({ onPatientPress }: PatientListProps) {
       
       setTotalPages(response.data.pagination.totalPages);
       setPage(pageNum);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading patients:', error);
-      Alert.alert('Erro', 'Falha ao carregar pacientes');
+      
+      // Se for erro de autenticação, fazer logout
+      if (error?.isAuthError) {
+        Alert.alert(
+          'Sessão Expirada',
+          'Sua sessão expirou. Por favor, faça login novamente.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                useAuthStore.getState().logout();
+                router.replace('/login');
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Erro', 'Falha ao carregar pacientes');
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);

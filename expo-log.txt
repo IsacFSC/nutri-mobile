@@ -1,0 +1,4 @@
+Starting project at /home/isac/Área de trabalho/nutri-mobile
+Starting Metro Bundler
+Waiting on http://localhost:8081
+Logs for your project will appear below.

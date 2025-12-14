@@ -45,8 +45,8 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Se erro 401 e não é uma tentativa de refresh
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Se erro 401 e não é uma tentativa de refresh ou login
+    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/login')) {
       originalRequest._retry = true;
 
       try {
@@ -65,7 +65,9 @@ api.interceptors.response.use(
 
         // Salvar novos tokens
         await AsyncStorage.setItem('@nutri:token', accessToken);
-        await AsyncStorage.setItem('@nutri:refreshToken', newRefreshToken);
+        if (newRefreshToken) {
+          await AsyncStorage.setItem('@nutri:refreshToken', newRefreshToken);
+        }
 
         // Atualizar header da requisição original
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
@@ -78,7 +80,7 @@ api.interceptors.response.use(
         
         // Rejeitar com erro específico para identificar logout
         return Promise.reject({
-          ...refreshError,
+          ...error,
           isAuthError: true,
           message: 'Sessão expirada. Faça login novamente.',
         });

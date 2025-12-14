@@ -126,15 +126,23 @@ export const getPatients = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Nutricionista não encontrado' });
     }
 
+    // Buscar pacientes que têm o nutritionistId OU que agendaram consultas com o nutricionista
     const where: any = {
-      nutritionistId: nutritionist.id,
+      OR: [
+        { nutritionistId: nutritionist.id },
+        { appointments: { some: { nutritionistId: nutritionist.id } } }
+      ]
     };
 
     // Busca por nome ou CPF
     if (search) {
-      where.OR = [
-        { user: { name: { contains: search as string, mode: 'insensitive' } } },
-        { cpf: { contains: search as string } },
+      where.AND = [
+        {
+          OR: [
+            { user: { name: { contains: search as string, mode: 'insensitive' } } },
+            { cpf: { contains: search as string } },
+          ]
+        }
       ];
     }
 

@@ -6,8 +6,12 @@ import { useAuthStore } from '@/src/store/authStore';
 import { UserRole } from '@/src/types';
 
 export default function TabsLayout() {
-  const { user } = useAuthStore();
+  const { user, isLoading } = useAuthStore();
+  
+  // Sempre chamar todos os hooks antes de qualquer lógica condicional
   const isAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.NUTRITIONIST;
+  const isPatient = user?.role === UserRole.PATIENT;
+  const isNutritionist = user?.role === UserRole.NUTRITIONIST;
 
   return (
     <Tabs
@@ -89,7 +93,18 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="chatbubbles" size={size} color={color} />
           ),
-          href: user?.role === 'PATIENT' || user?.role === 'NUTRITIONIST' ? '/conversations' : null,
+          href: (isPatient || isNutritionist) ? '/conversations' : null,
+        }}
+      />
+
+      <Tabs.Screen
+        name="water-reminder"
+        options={{
+          title: 'Água',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="water" size={size} color={color} />
+          ),
+          href: isPatient ? '/water-reminder' : null,
         }}
       />
 

@@ -16,6 +16,8 @@ import organizationRoutes from './routes/organization.routes';
 import nutritionistRoutes from './routes/nutritionist.routes';
 import paymentRoutes from './routes/payment.routes';
 import conversationRoutes from './routes/conversation.routes';
+import dashboardRoutes from './routes/dashboard.routes';
+import videoCallRoutes from './routes/videoCall.routes';
 
 dotenv.config();
 
@@ -49,6 +51,8 @@ app.use('/api/organizations', organizationRoutes);
 app.use('/api/nutritionists', nutritionistRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/conversations', conversationRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/video-calls', videoCallRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

@@ -40,6 +40,12 @@ enum AppointmentStatus {
   NO_SHOW
 }
 
+enum AppointmentType {
+  ONLINE
+  PRESENCIAL
+  RETORNO
+}
+
 enum MealCategory {
   BREAKFAST
   MORNING_SNACK
@@ -325,6 +331,7 @@ model Appointment {
   nutritionistId String
   dateTime       DateTime
   duration       Int               @default(60) // minutes
+  type           AppointmentType   @default(ONLINE)
   status         AppointmentStatus @default(SCHEDULED)
   notes          String?
   videoRoomUrl   String?
@@ -565,6 +572,7 @@ model Conversation {
   nutritionist Nutritionist      @relation(fields: [nutritionistId], references: [id])
   patient      Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
   messages     Message[]
+  videoCalls   VideoCall[]
 
   @@index([nutritionistId])
   @@index([patientId])
@@ -758,5 +766,32 @@ model PaymentAlert {
   subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
   @@map("payment_alerts")
+}
+
+enum VideoCallStatus {
+  WAITING
+  ACTIVE
+  ENDED
+  CANCELLED
+}
+
+model VideoCall {
+  id             String          @id @default(uuid())
+  conversationId String
+  roomName       String          @unique // Nome da sala Jitsi
+  startedAt      DateTime        @default(now())
+  endedAt        DateTime?
+  duration       Int?            // Duração em minutos
+  status         VideoCallStatus @default(WAITING)
+  initiatedBy    String          // userId de quem iniciou
+  
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([status])
+  @@map("video_calls")
 }
 

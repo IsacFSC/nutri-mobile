@@ -14,23 +14,44 @@ import { Colors, Typography, Spacing } from '@/src/constants';
 import { useAuthStore } from '@/src/store/authStore';
 import api from '@/src/config/api';
 
-interface Meal {
+interface MealPlanItem {
   id: string;
-  name: string;
+  category: string;
   time: string;
-  calories?: number;
-  protein?: number;
-  carbs?: number;
-  fats?: number;
-  items: string[];
+  isConsumed: boolean;
+  recipe: {
+    id: string;
+    name: string;
+    description: string;
+    nutrition: {
+      calories: number;
+      protein: number;
+      carbs: number;
+      fats: number;
+      fiber?: number;
+      sodium?: number;
+    };
+    ingredients: Array<{
+      id: string;
+      quantity: number;
+      unit: string;
+      food: {
+        name: string;
+      };
+    }>;
+  };
 }
 
 interface MealPlan {
   id: string;
   date: string;
-  dayOfWeek: string;
-  totalCalories: number;
-  meals: Meal[];
+  totalNutrition: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fats: number;
+  };
+  meals: MealPlanItem[];
 }
 
 export default function MealPlanScreen() {
@@ -42,23 +63,19 @@ export default function MealPlanScreen() {
   const loadMealPlan = async () => {
     try {
       setLoading(true);
+      
+      if (!user?.id) {
+        setMealPlan(null);
+        return;
+      }
+      
+      // Buscar plano do dia usando o endpoint correto
+      // A API já filtra automaticamente pelo usuário logado
       const response = await api.get('/meal-plans');
       
-      // Garantir que response.data é um array
-      const data = Array.isArray(response.data) ? response.data : [];
-      
-      // Pegar o plano do dia atual
-      const today = data.find((plan: any) => {
-        const planDate = new Date(plan.date);
-        const now = new Date();
-        return (
-          planDate.getDate() === now.getDate() &&
-          planDate.getMonth() === now.getMonth() &&
-          planDate.getFullYear() === now.getFullYear()
-        );
-      });
-
-      setMealPlan(today || null);
+      // Se retornou array, pegar o primeiro (mais recente)
+      const data = Array.isArray(response.data) ? response.data[0] : response.data;
+      setMealPlan(data || null);
     } catch (error: any) {
       console.error('Erro ao carregar plano alimentar:', error);
       console.error('Detalhes:', error.response?.data);
@@ -91,14 +108,29 @@ export default function MealPlanScreen() {
     return <Loading />;
   }
 
-  const getMealIcon = (mealName: string): keyof typeof Ionicons.glyphMap => {
-    const name = mealName.toLowerCase();
-    if (name.includes('café') || name.includes('breakfast')) return 'cafe';
-    if (name.includes('almoço') || name.includes('lunch')) return 'restaurant';
-    if (name.includes('lanche') || name.includes('snack')) return 'fast-food';
-    if (name.includes('jantar') || name.includes('dinner')) return 'pizza';
-    if (name.includes('ceia') || name.includes('supper')) return 'moon';
-    return 'nutrition';
+  const getCategoryLabel = (category: string): string => {
+    const labels: Record<string, string> = {
+      BREAKFAST: 'Café da Manhã',
+      MORNING_SNACK: 'Lanche da Manhã',
+      LUNCH: 'Almoço',
+      AFTERNOON_SNACK: 'Lanche da Tarde',
+      DINNER: 'Jantar',
+      EVENING_SNACK: 'Ceia',
+    };
+    return labels[category] || category;
+  };
+
+  const getMealIcon = (category?: string): keyof typeof Ionicons.glyphMap => {
+    if (!category) return 'nutrition';
+    const iconMap: Record<string, keyof typeof Ionicons.glyphMap> = {
+      BREAKFAST: 'sunny',
+      MORNING_SNACK: 'cafe',
+      LUNCH: 'restaurant',
+      AFTERNOON_SNACK: 'ice-cream',
+      DINNER: 'moon',
+      EVENING_SNACK: 'star',
+    };
+    return iconMap[category] || 'nutrition';
   };
 
   return (
@@ -148,7 +180,7 @@ export default function MealPlanScreen() {
                 <View style={styles.summaryItem}>
                   <Ionicons name="flame" size={24} color={Colors.primary} />
                   <Text style={styles.summaryValue}>
-                    {mealPlan.totalCalories || 0}
+                    {Math.round(mealPlan.totalNutrition?.calories || 0)}
                   </Text>
                   <Text style={styles.summaryLabel}>kcal</Text>
                 </View>
@@ -164,64 +196,69 @@ export default function MealPlanScreen() {
 
             {/* Refeições */}
             {mealPlan.meals && mealPlan.meals.length > 0 ? (
-              mealPlan.meals.map((meal, index) => (
-                <Card key={meal.id || index} style={styles.mealCard}>
+              mealPlan.meals.map((mealItem, index) => (
+                <Card key={mealItem.id || index} style={styles.mealCard}>
                   <View style={styles.mealHeader}>
                     <View style={styles.mealIconContainer}>
                       <Ionicons
-                        name={getMealIcon(meal.name)}
+                        name={getMealIcon(mealItem.category)}
                         size={24}
                         color={Colors.primary}
                       />
                     </View>
                     <View style={styles.mealInfo}>
-                      <Text style={styles.mealName}>{meal.name}</Text>
-                      <Text style={styles.mealTime}>{meal.time}</Text>
+                      <Text style={styles.mealName}>{getCategoryLabel(mealItem.category)}</Text>
+                      <Text style={styles.mealTime}>{mealItem.time}</Text>
                     </View>
-                    {meal.calories && (
+                    {mealItem.recipe.nutrition.calories && (
                       <View style={styles.caloriesTag}>
-                        <Text style={styles.caloriesText}>{meal.calories} kcal</Text>
+                        <Text style={styles.caloriesText}>{Math.round(mealItem.recipe.nutrition.calories)} kcal</Text>
                       </View>
                     )}
                   </View>
 
-                  {meal.items && meal.items.length > 0 && (
+                  {/* Nome e descrição da receita */}
+                  <View style={styles.recipeSection}>
+                    <Text style={styles.recipeName}>{mealItem.recipe.name}</Text>
+                    {mealItem.recipe.description && (
+                      <Text style={styles.recipeDescription}>{mealItem.recipe.description}</Text>
+                    )}
+                  </View>
+
+                  {/* Ingredientes */}
+                  {mealItem.recipe.ingredients && mealItem.recipe.ingredients.length > 0 && (
                     <View style={styles.mealItems}>
-                      {meal.items.map((item, idx) => (
-                        <View key={idx} style={styles.mealItem}>
+                      <Text style={styles.ingredientsTitle}>Ingredientes:</Text>
+                      {mealItem.recipe.ingredients.map((ingredient, idx) => (
+                        <View key={ingredient.id || idx} style={styles.mealItem}>
                           <Ionicons
                             name="checkmark-circle"
                             size={16}
                             color={Colors.success}
                           />
-                          <Text style={styles.mealItemText}>{item}</Text>
+                          <Text style={styles.mealItemText}>
+                            {ingredient.quantity} {ingredient.unit} de {ingredient.food.name}
+                          </Text>
                         </View>
                       ))}
                     </View>
                   )}
 
-                  {(meal.protein || meal.carbs || meal.fats) && (
-                    <View style={styles.macros}>
-                      {meal.protein && (
-                        <View style={styles.macroItem}>
-                          <Text style={styles.macroLabel}>Proteína</Text>
-                          <Text style={styles.macroValue}>{meal.protein}g</Text>
-                        </View>
-                      )}
-                      {meal.carbs && (
-                        <View style={styles.macroItem}>
-                          <Text style={styles.macroLabel}>Carboidrato</Text>
-                          <Text style={styles.macroValue}>{meal.carbs}g</Text>
-                        </View>
-                      )}
-                      {meal.fats && (
-                        <View style={styles.macroItem}>
-                          <Text style={styles.macroLabel}>Gordura</Text>
-                          <Text style={styles.macroValue}>{meal.fats}g</Text>
-                        </View>
-                      )}
+                  {/* Macros */}
+                  <View style={styles.macros}>
+                    <View style={styles.macroItem}>
+                      <Text style={styles.macroLabel}>Proteína</Text>
+                      <Text style={styles.macroValue}>{Math.round(mealItem.recipe.nutrition.protein)}g</Text>
                     </View>
-                  )}
+                    <View style={styles.macroItem}>
+                      <Text style={styles.macroLabel}>Carboidrato</Text>
+                      <Text style={styles.macroValue}>{Math.round(mealItem.recipe.nutrition.carbs)}g</Text>
+                    </View>
+                    <View style={styles.macroItem}>
+                      <Text style={styles.macroLabel}>Gordura</Text>
+                      <Text style={styles.macroValue}>{Math.round(mealItem.recipe.nutrition.fats)}g</Text>
+                    </View>
+                  </View>
                 </Card>
               ))
             ) : (
@@ -381,6 +418,28 @@ const styles = StyleSheet.create({
     ...Typography.body1,
     color: Colors.text.primary,
     fontWeight: '600',
+  },
+  recipeSection: {
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  recipeName: {
+    ...Typography.h4,
+    color: Colors.text.primary,
+    marginBottom: Spacing.xs,
+  },
+  recipeDescription: {
+    ...Typography.body2,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.sm,
+  },
+  ingredientsTitle: {
+    ...Typography.body1,
+    color: Colors.text.primary,
+    fontWeight: '600',
+    marginBottom: Spacing.sm,
   },
   emptyCard: {
     marginTop: Spacing.xl,

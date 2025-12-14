@@ -21,6 +21,9 @@ router.put('/:id', appointmentController.updateAppointment);
 // DELETE /api/appointments/:id - Cancelar consulta
 router.delete('/:id', appointmentController.cancelAppointment);
 
+// POST /api/appointments/:id/conversation - Criar conversa para consulta
+router.post('/:id/conversation', appointmentController.createConversationForAppointment);
+
 // GET /api/appointments/available/:nutritionistId/:date - Horários disponíveis
 router.get('/available/:nutritionistId/:date', appointmentController.getAvailableSlots);
 

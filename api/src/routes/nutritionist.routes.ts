@@ -6,6 +6,24 @@ import bcrypt from 'bcryptjs';
 const router = Router();
 const prisma = new PrismaClient();
 
+// GET /api/nutritionists/list - Listar nutricionistas disponíveis (para pacientes agendarem)
+router.get('/list', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const nutritionists = await prisma.nutritionist.findMany({
+      where: { isActive: true },
+      include: {
+        user: { select: { id: true, name: true, email: true, avatar: true } },
+      },
+      orderBy: { user: { name: 'asc' } },
+    });
+
+    res.json(nutritionists);
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Erro ao listar nutricionistas' });
+  }
+});
+
 // GET /api/nutritionists - Listar nutricionistas (ADMIN only)
 router.get('/', authenticateToken, authorizeRoles('ADMIN'), async (req: Request, res: Response) => {
   try {
