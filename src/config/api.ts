@@ -16,6 +16,11 @@ const API_BASE_URL = __DEV__
   // ? 'http://localhost:3000/api' // Descomente para iOS Simulator
   : 'https://sua-api-producao.com/api';
 
+// Export da URL base (sem /api para Socket.IO)
+export const API_URL = __DEV__
+  ? `http://${LOCAL_IP}:3000`
+  : 'https://sua-api-producao.com';
+
 // Criar instância do axios
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -44,6 +49,18 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
+    // Se erro 403 com token inválido - forçar logout imediatamente
+    if (error.response?.status === 403 && error.response?.data?.error === 'Token inválido') {
+      console.error('[API] Token inválido - forçando logout');
+      await AsyncStorage.multiRemove(['@nutri:token', '@nutri:refreshToken', '@nutri:user']);
+      
+      return Promise.reject({
+        ...error,
+        isAuthError: true,
+        message: 'Sessão expirada. Faça login novamente.',
+      });
+    }
 
     // Se erro 401 e não é uma tentativa de refresh ou login
     if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/login')) {

@@ -13,6 +13,7 @@ interface RegisterData {
 
 interface AuthState {
   user: User | null;
+  token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   error: string | null;
@@ -30,6 +31,7 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
+  token: null,
   isLoading: false,
   isAuthenticated: false,
   error: null,
@@ -38,7 +40,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const user = await AuthService.login(email, password);
-      set({ user, isAuthenticated: true, isLoading: false });
+      const token = await AsyncStorage.getItem('@nutri:token');
+      set({ user, token, isAuthenticated: true, isLoading: false });
     } catch (error: any) {
       set({ error: error.message, isLoading: false });
       throw error;
@@ -67,7 +70,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await AuthService.logout();
       // Limpar completamente o estado
       set({ 
-        user: null, 
+        user: null,
+        token: null, 
         isAuthenticated: false, 
         isLoading: false,
         error: null 
@@ -75,7 +79,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (error: any) {
       // Mesmo com erro, fazer logout local
       set({ 
-        user: null, 
+        user: null,
+        token: null, 
         isAuthenticated: false, 
         isLoading: false,
         error: null 
@@ -111,13 +116,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const isAuth = await AuthService.isAuthenticated();
       if (isAuth) {
         const user = await AuthService.getUserData();
-        set({ user, isAuthenticated: true, isLoading: false });
+        const token = await AsyncStorage.getItem('@nutri:token');
+        set({ user, token, isAuthenticated: true, isLoading: false });
       } else {
-        set({ user: null, isAuthenticated: false, isLoading: false });
+        set({ user: null, token: null, isAuthenticated: false, isLoading: false });
       }
     } catch (error: any) {
       console.log('Error loading user:', error);
-      set({ user: null, isAuthenticated: false, isLoading: false });
+      set({ user: null, token: null, isAuthenticated: false, isLoading: false });
     }
   },
 

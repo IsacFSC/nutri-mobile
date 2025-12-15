@@ -59,7 +59,7 @@ interface Conversation {
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -107,6 +107,25 @@ export default function ChatScreen() {
     } catch (error: any) {
       console.error('[Chat] Erro ao carregar conversa:', error);
       console.error('[Chat] Error details:', error?.response?.data);
+      
+      // Erro de autenticação - fazer logout
+      if (error?.isAuthError || (error?.response?.status === 403 && error?.response?.data?.error === 'Token inválido')) {
+        Alert.alert(
+          'Sessão Expirada',
+          error?.message || 'Sua sessão expirou. Por favor, faça login novamente.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                logout();
+                router.replace('/login');
+              }
+            }
+          ]
+        );
+        return;
+      }
+      
       if (!silent) {
         const errorMessage = error?.response?.data?.error || 'Não foi possível carregar a conversa';
         Alert.alert('Erro', errorMessage);
@@ -161,7 +180,8 @@ export default function ChatScreen() {
             {
               text: 'Entrar',
               onPress: () => {
-                router.push(`/video-call/${id}`);
+                console.log('[Chat] Navegando para videochamada WebRTC, conversationId:', id);
+                router.push(`/video-call-webrtc/${id}`);
               },
             },
           ],
@@ -284,15 +304,42 @@ export default function ChatScreen() {
     );
   };
 
+  const renderVideoCallMessage = (content: string, isMyMessage: boolean) => {
+    try {
+      const callData = JSON.parse(content);
+      const isAnswered = callData.status === 'ANSWERED';
+      const isMissed = callData.status === 'MISSED';
+      const isInitiated = callData.status === 'INITIATED';
+      
+      const icon = isAnswered ? 'videocam' : 'videocam-off';
+      const color = isAnswered ? '#4CAF50' : (isMissed ? '#F44336' : '#FFA726');
+      const statusText = isAnswered 
+        ? `Chamada atendida${callData.duration ? ` (${callData.duration} min)` : ''}`
+        : isMissed 
+        ? 'Chamada não atendida' 
+        : 'Chamada de vídeo...';
+
+      return (
+        <View style={styles.videoCallMessage}>
+          <Ionicons name={icon} size={20} color={color} />
+          <Text style={[styles.videoCallText, { color }]}>{statusText}</Text>
+        </View>
+      );
+    } catch {
+      return <Text style={styles.messageText}>Chamada de vídeo</Text>;
+    }
+  };
+
   const renderMessage = ({ item }: { item: Message }) => {
     const isMyMessage = item.senderId === user?.id;
+    const isVideoCall = item.type === 'VIDEO_CALL';
 
     return (
       <View style={[styles.messageBubble, isMyMessage ? styles.myMessage : styles.otherMessage]}>
         {!isMyMessage && (
           <Text style={styles.senderName}>{item.sender.name}</Text>
         )}
-        {renderMessageContent(item.content, isMyMessage)}
+        {isVideoCall ? renderVideoCallMessage(item.content, isMyMessage) : renderMessageContent(item.content, isMyMessage)}
         <Text style={[styles.messageTime, isMyMessage && styles.myMessageTime]}>
           {new Date(item.createdAt).toLocaleTimeString('pt-BR', {
             hour: '2-digit',
@@ -359,7 +406,7 @@ export default function ChatScreen() {
         </View>
         {isActive && (
           <TouchableOpacity 
-            onPress={() => router.push(`/video-call/${id}`)} 
+            onPress={() => router.push(`/video-call-webrtc/${id}`)} 
             style={styles.videoButton}
           >
             <Ionicons name="videocam" size={24} color={Colors.text.inverse} />
@@ -528,6 +575,17 @@ const styles = StyleSheet.create({
   myMessageTime: {
     color: Colors.text.inverse,
     opacity: 0.8,
+  },
+  videoCallMessage: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  videoCallText: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: Spacing.sm,
   },
   inputContainer: {
     flexDirection: 'row',

@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import patientRoutes from './routes/patient.routes';
@@ -72,7 +74,60 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
-app.listen(PORT, () => {
+// Criar servidor HTTP
+const httpServer = createServer(app);
+
+// Configurar Socket.IO para WebRTC signaling
+const io = new Server(httpServer, {
+  cors: {
+    origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+    credentials: true,
+  },
+});
+
+// WebRTC Signaling Server
+io.on('connection', (socket) => {
+  console.log('🔌 Client connected:', socket.id);
+
+  // Entrar em uma sala (conversationId)
+  socket.on('join-room', (roomId: string, userId: string) => {
+    console.log(`👤 User ${userId} joining room ${roomId}`);
+    socket.join(roomId);
+    socket.to(roomId).emit('user-connected', userId, socket.id);
+  });
+
+  // Sinalização WebRTC - Offer
+  socket.on('offer', (roomId: string, offer: RTCSessionDescriptionInit) => {
+    console.log('📤 Sending offer to room:', roomId);
+    socket.to(roomId).emit('offer', offer, socket.id);
+  });
+
+  // Sinalização WebRTC - Answer
+  socket.on('answer', (roomId: string, answer: RTCSessionDescriptionInit) => {
+    console.log('📥 Sending answer to room:', roomId);
+    socket.to(roomId).emit('answer', answer, socket.id);
+  });
+
+  // Sinalização WebRTC - ICE Candidate
+  socket.on('ice-candidate', (roomId: string, candidate: RTCIceCandidateInit) => {
+    console.log('🧊 Sending ICE candidate to room:', roomId);
+    socket.to(roomId).emit('ice-candidate', candidate, socket.id);
+  });
+
+  // Sair da sala
+  socket.on('leave-room', (roomId: string) => {
+    console.log('👋 User leaving room:', roomId);
+    socket.to(roomId).emit('user-disconnected', socket.id);
+    socket.leave(roomId);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('🔌 Client disconnected:', socket.id);
+  });
+});
+
+httpServer.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📚 API Docs: http://localhost:${PORT}/api`);
+  console.log(`🔌 WebRTC Signaling: Socket.IO ready`);
 });

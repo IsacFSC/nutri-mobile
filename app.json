@@ -29,6 +29,8 @@
       },
       "permissions": [
         "CAMERA",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS",
         "NOTIFICATIONS",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
@@ -45,10 +47,10 @@
         "expo-notifications",
         {
           "icon": "./assets/icon.png",
-          "color": "#4CAF50",
-          "sounds": ["./assets/notification-sound.wav"]
+          "color": "#4CAF50"
         }
-      ]
+      ],
+      "./plugins/withReactNativeWebRTC.js"
     ],
     "scheme": "nutrimobile",
     "extra": {

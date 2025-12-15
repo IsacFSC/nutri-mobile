@@ -62,6 +62,22 @@ export const videoCallController = {
         },
       });
 
+      // Criar mensagem de histórico de chamada
+      const senderRole = conversation.nutritionist.userId === userId ? 'NUTRITIONIST' : 'PATIENT';
+      await prisma.message.create({
+        data: {
+          conversationId,
+          senderId: userId,
+          senderRole: senderRole as any,
+          type: 'VIDEO_CALL' as any,
+          content: JSON.stringify({
+            videoCallId: videoCall.id,
+            status: 'INITIATED',
+            initiatedBy: userId,
+          }),
+        },
+      });
+
       console.log(`[VideoCall] Chamada iniciada: ${videoCall.id} na sala ${roomName}`);
 
       res.json({ videoCall });
@@ -162,6 +178,9 @@ export const videoCallController = {
         ? Math.ceil((endedAt.getTime() - videoCall.startedAt.getTime()) / 1000 / 60)
         : 0;
 
+      // Verificar se a chamada foi atendida (status foi ACTIVE em algum momento)
+      const wasAnswered = videoCall.status === 'ACTIVE' || videoCall.startedAt !== null;
+
       // Atualizar status
       const updatedCall = await prisma.videoCall.update({
         where: { id },
@@ -172,7 +191,28 @@ export const videoCallController = {
         },
       });
 
-      console.log(`[VideoCall] Chamada encerrada: ${id}, duração: ${duration} minutos`);
+      // Atualizar mensagem de histórico
+      const callMessage = await prisma.message.findFirst({
+        where: {
+          conversationId: videoCall.conversationId,
+          type: 'VIDEO_CALL',
+          content: { contains: videoCall.id },
+        },
+      });
+
+      if (callMessage) {
+        const content = JSON.parse(callMessage.content);
+        content.status = wasAnswered ? 'ANSWERED' : 'MISSED';
+        content.duration = duration;
+        content.endedAt = endedAt.toISOString();
+
+        await prisma.message.update({
+          where: { id: callMessage.id },
+          data: { content: JSON.stringify(content) },
+        });
+      }
+
+      console.log(`[VideoCall] Chamada encerrada: ${id}, duração: ${duration} minutos, atendida: ${wasAnswered}`);
 
       res.json({ videoCall: updatedCall });
     } catch (error) {

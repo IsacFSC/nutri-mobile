@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Alert, ActivityIndicator, Text, TouchableOpacity, BackHandler } from 'react-native';
+import { View, StyleSheet, Alert, ActivityIndicator, Text, TouchableOpacity, BackHandler, Linking } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { VideoCallService } from '@/src/services/videoCall.service';
 import { useAuthStore } from '@/src/store/authStore';
 import { Colors, Spacing } from '@/src/constants';
+import { generateJitsiUrl, JITSI_CONFIG } from '@/src/config/jitsi.config';
 
 export default function VideoCallScreen() {
   const { conversationId } = useLocalSearchParams<{ conversationId: string }>();
@@ -13,10 +14,20 @@ export default function VideoCallScreen() {
   const [loading, setLoading] = useState(true);
   const [videoCall, setVideoCall] = useState<any>(null);
   const [jitsiUrl, setJitsiUrl] = useState<string>('');
+  const [loadTimeout, setLoadTimeout] = useState(false);
   const webViewRef = useRef<WebView>(null);
+  const loadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    console.log('[VideoCall] Tela montada, conversationId:', conversationId);
+    console.log('[VideoCall] Usuário atual:', user?.name, 'Role:', user?.role);
     initVideoCall();
+    
+    // Timeout de 15 segundos para detectar travamento
+    loadTimeoutRef.current = setTimeout(() => {
+      console.warn('[VideoCall] TIMEOUT: WebView não carregou em 15 segundos');
+      setLoadTimeout(true);
+    }, 15000);
     
     // Interceptar botão voltar do Android
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -26,6 +37,9 @@ export default function VideoCallScreen() {
     
     return () => {
       backHandler.remove();
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+      }
       if (videoCall) {
         endCall();
       }
@@ -35,62 +49,50 @@ export default function VideoCallScreen() {
   const initVideoCall = async () => {
     try {
       setLoading(true);
+      console.log('[VideoCall] Iniciando initVideoCall...');
 
       // Verificar se já existe chamada ativa
+      console.log('[VideoCall] Buscando chamada ativa para conversa:', conversationId);
       const { videoCall: activeCall } = await VideoCallService.getActiveVideoCall(conversationId);
+      console.log('[VideoCall] Chamada ativa encontrada?', !!activeCall, activeCall?.roomName);
 
       let call = activeCall;
 
       if (!call) {
         // Criar nova chamada
+        console.log('[VideoCall] Criando nova chamada...');
         const response = await VideoCallService.startVideoCall(conversationId);
         call = response.videoCall;
+        console.log('[VideoCall] Chamada criada:', call.roomName);
       } else {
         // Entrar na chamada existente
+        console.log('[VideoCall] Entrando na chamada existente, ID:', call.id);
         const response = await VideoCallService.joinVideoCall(call.id);
         call = response.videoCall;
+        console.log('[VideoCall] Entrou na chamada, status:', call.status);
       }
 
       setVideoCall(call);
 
-      // Construir URL do Jitsi com configurações para entrar direto na sala
-      const userName = encodeURIComponent(user?.name || 'Usuário');
-      const roomName = call.roomName; // Sem encode para manter caracteres especiais
-      
-      // Configurações via hash para garantir entrada direta
-      const config = {
-        startWithAudioMuted: false,
-        startWithVideoMuted: false,
-        prejoinPageEnabled: false,
-        disableDeepLinking: true,
-        requireDisplayName: false,
-        enableWelcomePage: false,
-        enableClosePage: false,
-        hideConferenceSubject: false,
-        hideConferenceTimer: false,
-        startAudioOnly: false,
-        startScreenSharing: false,
-        enableLayerSuspension: true,
-        liveStreamingEnabled: false,
-        fileRecordingsEnabled: false,
-        disableInviteFunctions: true,
-      };
-      
-      const configString = Object.entries(config)
-        .map(([key, value]) => `config.${key}=${value}`)
-        .join('&');
-      
-      const url = `https://meet.jit.si/${roomName}#userInfo.displayName="${userName}"&${configString}`;
+      // Gerar URL do Jitsi usando configuração centralizada
+      const userName = user?.name || 'Usuário';
+      const url = generateJitsiUrl(call.roomName, userName);
       
       setJitsiUrl(url);
       console.log('[VideoCall] Sala criada:', call.roomName);
-      console.log('[VideoCall] URL:', url);
+      console.log('[VideoCall] Servidor Jitsi:', JITSI_CONFIG.server);
+      console.log('[VideoCall] URL completa:', url);
 
     } catch (error: any) {
-      console.error('Erro ao iniciar videochamada:', error);
+      console.error('[VideoCall] ERRO CRÍTICO ao iniciar:', error);
+      console.error('[VideoCall] Error details:', JSON.stringify(error, null, 2));
+      console.error('[VideoCall] Error response:', error?.response?.data);
+      
+      const errorMessage = error?.response?.data?.error || error?.message || 'Erro desconhecido';
+      
       Alert.alert(
         'Erro',
-        'Não foi possível iniciar a videochamada',
+        `Não foi possível iniciar a videochamada.\n\nDetalhes: ${errorMessage}`,
         [{ text: 'OK', onPress: () => router.back() }]
       );
     } finally {
@@ -132,6 +134,42 @@ export default function VideoCallScreen() {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
         <Text style={styles.loadingText}>Iniciando videochamada...</Text>
+        {loadTimeout && (
+          <>
+            <TouchableOpacity 
+              style={styles.retryButton}
+              onPress={() => {
+                setLoadTimeout(false);
+                initVideoCall();
+              }}
+            >
+              <Text style={styles.retryButtonText}>Tentar Novamente</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.retryButton, { backgroundColor: Colors.secondary, marginTop: 10 }]}
+              onPress={() => {
+                if (jitsiUrl) {
+                  Alert.alert(
+                    'Abrir no Navegador',
+                    'A videochamada será aberta no navegador do seu dispositivo.',
+                    [
+                      { text: 'Cancelar', style: 'cancel' },
+                      {
+                        text: 'Abrir',
+                        onPress: () => {
+                          Linking.openURL(jitsiUrl);
+                          router.back();
+                        },
+                      },
+                    ]
+                  );
+                }
+              }}
+            >
+              <Text style={styles.retryButtonText}>Abrir no Navegador</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
     );
   }
@@ -151,35 +189,74 @@ export default function VideoCallScreen() {
         ref={webViewRef}
         source={{ uri: jitsiUrl }}
         style={styles.webview}
-        mediaPlaybackRequiresUserAction={false}
-        allowsInlineMediaPlayback={true}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
-        startInLoadingState={true}
-        mixedContentMode="always"
-        setSupportMultipleWindows={false}
-        allowsFullscreenVideo={true}
-        cacheEnabled={false}
+        {...JITSI_CONFIG.webViewConfig}
         onLoadStart={() => console.log('[VideoCall] WebView: Iniciando carregamento...')}
-        onLoad={() => console.log('[VideoCall] WebView: Carregado!')}
-        onLoadEnd={() => console.log('[VideoCall] WebView: Carregamento finalizado')}
-        onError={(syntheticEvent) => {
-          const { nativeEvent } = syntheticEvent;
-          console.error('[VideoCall] WebView Error:', nativeEvent);
-          Alert.alert('Erro', 'Não foi possível carregar a videochamada');
+        injectedJavaScript={JITSI_CONFIG.injectedScript}
+        onLoad={() => {
+          console.log('[VideoCall] WebView: Carregado!');
+          if (loadTimeoutRef.current) {
+            clearTimeout(loadTimeoutRef.current);
+          }
+          setLoadTimeout(false);
+        }}
+        onLoadEnd={() => {
+          console.log('[VideoCall] WebView: Carregamento finalizado');
+          if (loadTimeoutRef.current) {
+            clearTimeout(loadTimeoutRef.current);
+          }
+          setLoadTimeout(false);
         }}
         onShouldStartLoadWithRequest={(request) => {
-          console.log('[VideoCall] Carregando URL:', request.url);
-          // Permitir apenas Jitsi
-          if (request.url.includes('meet.jit.si') || request.url.includes('8x8.vc')) {
-            return true;
+          const url = request.url;
+          console.log('[VideoCall] 🔍 Navegando para:', url);
+          
+          // Bloquear URLs de login/auth/app stores
+          const blockedPatterns = [
+            'login', 'auth', 'signin', 'sso', 'oauth',
+            'play.google.com', 'apps.apple.com', 'itunes.apple.com'
+          ];
+          
+          const isBlocked = blockedPatterns.some(pattern => url.toLowerCase().includes(pattern));
+          
+          if (isBlocked) {
+            console.log('[VideoCall] ⛔ URL BLOQUEADA:', url);
+            Alert.alert(
+              'Ação Bloqueada',
+              'Esta navegação não é permitida durante a videochamada.',
+              [{ text: 'OK' }]
+            );
+            return false; // Bloquear navegação
           }
-          return false;
+          
+          // Permitir apenas URLs do Jitsi/8x8
+          const isAllowed = url.includes('jit.si') || url.includes('8x8.vc') || url.includes('jitsi') || url.startsWith('data:') || url.startsWith('about:');
+          
+          if (!isAllowed) {
+            console.log('[VideoCall] ⚠️ URL não permitida:', url);
+            return false;
+          }
+          
+          return true; // Permitir navegação
+        }}
+        onError={(syntheticEvent) => {
+          const { nativeEvent } = syntheticEvent;
+          console.error('[VideoCall] WebView Error:', JSON.stringify(nativeEvent, null, 2));
+          Alert.alert('Erro ao Carregar', `Não foi possível conectar à videochamada.\n\nDetalhes: ${nativeEvent.description || 'Erro desconhecido'}`);
+        }}
+        onHttpError={(syntheticEvent) => {
+          const { nativeEvent } = syntheticEvent;
+          console.error('[VideoCall] HTTP Error:', nativeEvent.statusCode, nativeEvent.url);
+        }}
+        onMessage={(event) => {
+          console.log('[VideoCall] Mensagem do WebView:', event.nativeEvent.data);
         }}
         renderLoading={() => (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={styles.loadingText}>Conectando...</Text>
+            <Text style={styles.loadingText}>Conectando à videochamada...</Text>
+            <Text style={[styles.loadingText, { fontSize: 12, marginTop: 8 }]}>
+              Aguarde alguns segundos...
+            </Text>
           </View>
         )}
       />
@@ -228,5 +305,17 @@ const styles = StyleSheet.create({
   webview: {
     flex: 1,
     backgroundColor: '#000',
+  },
+  retryButton: {
+    marginTop: 20,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 30,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
