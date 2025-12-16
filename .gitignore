@@ -50,6 +50,24 @@ fastlane/test_output
 dist/
 web-build/
 
+# API
+api/dist/
+api/node_modules/
+api/.env
+api/uploads/
+
+# Logs
+*.log
+expo-log.txt
+
+# Debug e arquivos temporários
+*.zip
+bugreport-*.zip
+
+# IDE
+.vscode/
+.idea/
+
 # Environment variables
 .env
 .env.local
