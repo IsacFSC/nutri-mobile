@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { generateProtocolNumber } from '../utils/generateProtocol';
 
 const prisma = new PrismaClient();
 
@@ -54,10 +55,14 @@ export const createPatient = async (req: Request, res: Response) => {
       bmi = weight / (heightInMeters * heightInMeters);
     }
 
+    // Gerar número de protocolo único
+    const protocolNumber = await generateProtocolNumber();
+
     const patient = await prisma.patient.create({
       data: {
         userId,
         nutritionistId,
+        protocolNumber,
         cpf,
         rg,
         birthDate: birthDate ? new Date(birthDate) : null,
@@ -181,6 +186,7 @@ export const getPatients = async (req: Request, res: Response) => {
     // Formatar dados para a tabela
     const formattedPatients = patients.map((patient) => ({
       id: patient.id,
+      protocolNumber: patient.protocolNumber,
       name: patient.user.name,
       email: patient.user.email,
       cpf: patient.cpf,

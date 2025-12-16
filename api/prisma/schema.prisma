@@ -203,6 +203,7 @@ model Patient {
   userId         String   @unique
   nutritionistId String?
   planType       PlanType @default(FREE)
+  protocolNumber String?  @unique // Número de protocolo único para cada paciente
   
   // Dados Pessoais
   cpf            String?  @unique
@@ -383,6 +384,15 @@ model ConsultationNote {
   dietPrescription  String?
   supplementation   String?
   
+  // Ficha de Atendimento Completa
+  recommendedExercises  String? // Exercícios recomendados (texto ou JSON)
+  recommendedFoods      String? // Alimentos a serem consumidos
+  foodsToAvoid          String? // Alimentos a serem evitados
+  supplements           String? // Suplementos orientados (nome, dosagem, horário)
+  waterIntake           String? // Meta de consumo de água
+  sleepRecommendations  String? // Orientações sobre sono
+  lifestyleChanges      String? // Mudanças de estilo de vida recomendadas
+  
   // Próximas Etapas
   nextAppointment   DateTime?
   followUpNotes     String?
@@ -546,6 +556,7 @@ enum MessageType {
   FILE
   AUDIO
   VIDEO
+  VIDEO_CALL
 }
 
 enum ConversationStatus {

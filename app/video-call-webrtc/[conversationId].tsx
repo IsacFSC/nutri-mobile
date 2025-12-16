@@ -2,11 +2,25 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Alert, TouchableOpacity, Text, ActivityIndicator, BackHandler } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { MediaStream, RTCView } from 'react-native-webrtc';
 import { webrtcService } from '@/src/services/webrtc.service';
 import { VideoCallService } from '@/src/services/videoCall.service';
 import { useAuthStore } from '@/src/store/authStore';
 import { Colors, Spacing } from '@/src/constants';
+
+// Importação dinâmica para detectar se WebRTC está disponível
+let MediaStream: any;
+let RTCView: any;
+let webrtcAvailable = false;
+
+try {
+  const webrtc = require('react-native-webrtc');
+  MediaStream = webrtc.MediaStream;
+  RTCView = webrtc.RTCView;
+  webrtcAvailable = true;
+} catch (error) {
+  console.warn('[WebRTC] Native module not available - requires native build');
+  webrtcAvailable = false;
+}
 
 export default function WebRTCVideoCallScreen() {
   const { conversationId } = useLocalSearchParams<{ conversationId: string }>();
@@ -14,8 +28,8 @@ export default function WebRTCVideoCallScreen() {
   
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
-  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
-  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [localStream, setLocalStream] = useState<any | null>(null);
+  const [remoteStream, setRemoteStream] = useState<any | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [videoCall, setVideoCall] = useState<any>(null);
@@ -23,6 +37,21 @@ export default function WebRTCVideoCallScreen() {
   const isInitialized = useRef(false);
 
   useEffect(() => {
+    // Verificar se WebRTC está disponível
+    if (!webrtcAvailable) {
+      Alert.alert(
+        'Módulo Nativo Necessário',
+        'A videochamada WebRTC requer módulos nativos e não funciona com Expo Go.\n\nExecute: npx expo run:android',
+        [
+          {
+            text: 'Voltar',
+            onPress: () => router.replace('/'),
+          }
+        ]
+      );
+      return;
+    }
+
     if (!isInitialized.current) {
       isInitialized.current = true;
       initVideoCall();
@@ -67,9 +96,13 @@ export default function WebRTCVideoCallScreen() {
         console.log('[WebRTC Screen] Creating new video call...');
         const createResponse = await VideoCallService.startVideoCall(conversationId);
         call = createResponse.videoCall;
+        console.log('[WebRTC Screen] Call created:', call.id, 'status:', call.status);
       } else {
-        console.log('[WebRTC Screen] Joining existing call...');
-        await VideoCallService.joinVideoCall(call.id);
+        console.log('[WebRTC Screen] Joining existing call:', call.id, 'status:', call.status);
+        // Marcar como ativa ao entrar
+        const joinResponse = await VideoCallService.joinVideoCall(call.id);
+        call = joinResponse.videoCall;
+        console.log('[WebRTC Screen] Call joined, new status:', call.status);
       }
 
       setVideoCall(call);

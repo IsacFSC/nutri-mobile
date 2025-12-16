@@ -4,6 +4,8 @@
 
 Aplicação mobile desenvolvida em React Native/Expo que conecta nutricionistas e pacientes através de uma plataforma segura, permitindo gestão de planos alimentares, consultas, e acompanhamento de progresso com controle granular de recursos por paciente.
 
+> 🎥 **Videochamadas WebRTC:** Este app inclui videochamadas P2P nativas. Para testar, use `npx expo run:android` (não funciona com Expo Go). [Saiba mais →](./COMO_EXECUTAR_VIDEOCHAMADA.md)
+
 ## 📋 Sobre o Projeto
 
 Nutri Mobile é uma solução moderna para profissionais de nutrição que buscam digitalizar e otimizar o atendimento aos seus pacientes. Com autenticação rigorosa (MFA), conformidade total com a LGPD e recursos personalizáveis por paciente, oferece uma experiência segura e personalizada para ambos os perfis de usuário.
@@ -234,16 +236,23 @@ npm start
 ```
 
 8. **Execute no dispositivo**
+
+> ⚠️ **IMPORTANTE:** Para testar a **videochamada WebRTC**, você DEVE usar build nativo!
+
 ```bash
-# Android
-npm run android
+# Para features comuns (chat texto, planos, etc.)
+npx expo start
+# Abra no Expo Go (escaneie QR Code)
 
-# iOS (apenas macOS)
-npm run ios
+# Para VIDEOCHAMADA WebRTC (requer build nativo)
+npx expo run:android   # Android
+npx expo run:ios       # iOS (apenas macOS)
 
-# Web (testes)
+# Web (testes, mas SEM videochamada)
 npm run web
 ```
+
+📖 **Leia:** [Como Executar Videochamada](./COMO_EXECUTAR_VIDEOCHAMADA.md) para detalhes completos.
 
 ### Usuários de Teste
 

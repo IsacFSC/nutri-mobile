@@ -20,6 +20,8 @@ import paymentRoutes from './routes/payment.routes';
 import conversationRoutes from './routes/conversation.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import videoCallRoutes from './routes/videoCall.routes';
+import consultationNoteRoutes from './routes/consultationNote.routes';
+import DatabaseConnection from './utils/db';
 
 dotenv.config();
 
@@ -55,6 +57,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/video-calls', videoCallRoutes);
+app.use('/api/consultation-notes', consultationNoteRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -126,8 +129,35 @@ io.on('connection', (socket) => {
   });
 });
 
-httpServer.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📚 API Docs: http://localhost:${PORT}/api`);
-  console.log(`🔌 WebRTC Signaling: Socket.IO ready`);
+// Iniciar servidor e conectar ao banco
+async function startServer() {
+  try {
+    // Tentar conectar ao banco com retry
+    await DatabaseConnection.connect();
+    
+    // Iniciar servidor HTTP
+    httpServer.listen(PORT, () => {
+      console.log(`🚀 Server running on http://localhost:${PORT}`);
+      console.log(`📚 API Docs: http://localhost:${PORT}/api`);
+      console.log(`🔌 WebRTC Signaling: Socket.IO ready`);
+    });
+  } catch (error) {
+    console.error('❌ Falha ao iniciar servidor:', error);
+    process.exit(1);
+  }
+}
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  console.log('\n⚠️  Encerrando servidor...');
+  await DatabaseConnection.disconnect();
+  process.exit(0);
 });
+
+process.on('SIGTERM', async () => {
+  console.log('\n⚠️  Encerrando servidor...');
+  await DatabaseConnection.disconnect();
+  process.exit(0);
+});
+
+startServer();

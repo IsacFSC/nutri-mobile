@@ -11,7 +11,7 @@ import {
   Alert,
   Linking,
 } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '@/src/constants';
 import { useAuthStore } from '@/src/store/authStore';
@@ -95,6 +95,14 @@ export default function ChatScreen() {
       }
     };
   }, [id]);
+
+  // Recarregar mensagens quando a tela ganhar foco (ex: voltar da videochamada)
+  useFocusEffect(
+    React.useCallback(() => {
+      // Recarrega as mensagens ao voltar para esta tela
+      loadConversation(true);
+    }, [id])
+  );
 
   const loadConversation = async (silent = false) => {
     try {
@@ -304,29 +312,42 @@ export default function ChatScreen() {
     );
   };
 
-  const renderVideoCallMessage = (content: string, isMyMessage: boolean) => {
+  const renderVideoCallMessage = (content: string) => {
     try {
       const callData = JSON.parse(content);
       const isAnswered = callData.status === 'ANSWERED';
       const isMissed = callData.status === 'MISSED';
       const isInitiated = callData.status === 'INITIATED';
       
-      const icon = isAnswered ? 'videocam' : 'videocam-off';
+      const icon = isAnswered ? 'videocam' : (isMissed ? 'videocam-off' : 'videocam');
       const color = isAnswered ? '#4CAF50' : (isMissed ? '#F44336' : '#FFA726');
       const statusText = isAnswered 
         ? `Chamada atendida${callData.duration ? ` (${callData.duration} min)` : ''}`
         : isMissed 
         ? 'Chamada não atendida' 
-        : 'Chamada de vídeo...';
+        : 'Chamada em andamento';
 
       return (
-        <View style={styles.videoCallMessage}>
-          <Ionicons name={icon} size={20} color={color} />
-          <Text style={[styles.videoCallText, { color }]}>{statusText}</Text>
+        <View style={styles.videoCallDivider}>
+          <View style={[styles.dividerLine, { backgroundColor: color }]} />
+          <View style={styles.dividerContent}>
+            <Ionicons name={icon} size={18} color={color} />
+            <Text style={[styles.dividerText, { color }]}>{statusText}</Text>
+          </View>
+          <View style={[styles.dividerLine, { backgroundColor: color }]} />
         </View>
       );
     } catch {
-      return <Text style={styles.messageText}>Chamada de vídeo</Text>;
+      return (
+        <View style={styles.videoCallDivider}>
+          <View style={styles.dividerLine} />
+          <View style={styles.dividerContent}>
+            <Ionicons name="videocam" size={18} color="#999" />
+            <Text style={styles.dividerText}>Chamada de vídeo</Text>
+          </View>
+          <View style={styles.dividerLine} />
+        </View>
+      );
     }
   };
 
@@ -334,12 +355,18 @@ export default function ChatScreen() {
     const isMyMessage = item.senderId === user?.id;
     const isVideoCall = item.type === 'VIDEO_CALL';
 
+    // Mensagens de videochamada são renderizadas como divisória
+    if (isVideoCall) {
+      return renderVideoCallMessage(item.content);
+    }
+
+    // Mensagens normais
     return (
       <View style={[styles.messageBubble, isMyMessage ? styles.myMessage : styles.otherMessage]}>
         {!isMyMessage && (
           <Text style={styles.senderName}>{item.sender.name}</Text>
         )}
-        {isVideoCall ? renderVideoCallMessage(item.content, isMyMessage) : renderMessageContent(item.content, isMyMessage)}
+        {renderMessageContent(item.content, isMyMessage)}
         <Text style={[styles.messageTime, isMyMessage && styles.myMessageTime]}>
           {new Date(item.createdAt).toLocaleTimeString('pt-BR', {
             hour: '2-digit',
@@ -576,16 +603,27 @@ const styles = StyleSheet.create({
     color: Colors.text.inverse,
     opacity: 0.8,
   },
-  videoCallMessage: {
+  videoCallDivider: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.xs,
+    marginVertical: Spacing.lg,
+    paddingHorizontal: Spacing.md,
   },
-  videoCallText: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginLeft: Spacing.sm,
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E0E0E0',
+  },
+  dividerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.xs,
+  },
+  dividerText: {
+    ...Typography.caption,
+    fontWeight: '600',
+    fontSize: 13,
   },
   inputContainer: {
     flexDirection: 'row',

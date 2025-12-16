@@ -83,6 +83,27 @@ export default function ConversationsScreen() {
       : conversation.nutritionist.user;
   };
 
+  const formatLastMessage = (message: any) => {
+    // Se for mensagem de videochamada, formatar adequadamente
+    if (message.content.startsWith('{')) {
+      try {
+        const callData = JSON.parse(message.content);
+        if (callData.videoCallId) {
+          const isAnswered = callData.status === 'ANSWERED';
+          const isMissed = callData.status === 'MISSED';
+          return isAnswered 
+            ? `📞 Chamada atendida${callData.duration ? ` (${callData.duration} min)` : ''}`
+            : isMissed 
+            ? '📞 Chamada não atendida'
+            : '📞 Chamada de vídeo';
+        }
+      } catch {
+        // Se não for JSON válido, retornar o conteúdo normal
+      }
+    }
+    return message.content;
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'SCHEDULED':
@@ -183,7 +204,7 @@ export default function ConversationsScreen() {
           {item.lastMessage ? (
             <Text style={styles.lastMessage} numberOfLines={1}>
               {item.lastMessage.senderRole === user?.role ? 'Você: ' : ''}
-              {item.lastMessage.content}
+              {formatLastMessage(item.lastMessage)}
             </Text>
           ) : (
             <Text style={styles.noMessages}>Nenhuma mensagem ainda</Text>

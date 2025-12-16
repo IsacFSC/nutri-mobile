@@ -58,7 +58,8 @@ export const videoCallController = {
           conversationId,
           roomName,
           initiatedBy: userId,
-          status: 'WAITING',
+          status: 'ACTIVE', // ACTIVE desde o início, pois o criador já está entrando
+          startedAt: new Date(), // Marcar como iniciada
         },
       });
 
@@ -68,8 +69,8 @@ export const videoCallController = {
         data: {
           conversationId,
           senderId: userId,
-          senderRole: senderRole as any,
-          type: 'VIDEO_CALL' as any,
+          senderRole: senderRole as any, // Cast necessário para enum UserRole
+          type: 'VIDEO_CALL', // Agora está no enum MessageType
           content: JSON.stringify({
             videoCallId: videoCall.id,
             status: 'INITIATED',
@@ -126,7 +127,10 @@ export const videoCallController = {
       if (videoCall.status === 'WAITING') {
         await prisma.videoCall.update({
           where: { id },
-          data: { status: 'ACTIVE' },
+          data: { 
+            status: 'ACTIVE',
+            startedAt: new Date(), // Marca que a chamada foi atendida
+          },
         });
       }
 
