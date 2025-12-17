@@ -72,9 +72,6 @@ export default function WebRTCVideoCallScreen() {
   const initVideoCall = async () => {
     try {
       console.log('[WebRTC Screen] Initializing video call...');
-      console.log('[WebRTC Screen] conversationId:', conversationId);
-      console.log('[WebRTC Screen] user:', user?.id, user?.name, user?.role);
-      console.log('[WebRTC Screen] token exists:', !!token);
       setLoading(true);
       setConnecting(true);
 
@@ -93,26 +90,21 @@ export default function WebRTCVideoCallScreen() {
       let call = callResponse?.videoCall;
       
       if (!call) {
-        console.log('[WebRTC Screen] Creating new video call...');
         const createResponse = await VideoCallService.startVideoCall(conversationId);
         call = createResponse.videoCall;
-        console.log('[WebRTC Screen] Call created:', call.id, 'status:', call.status);
       } else {
         console.log('[WebRTC Screen] Joining existing call:', call.id, 'status:', call.status);
         // Marcar como ativa ao entrar
         const joinResponse = await VideoCallService.joinVideoCall(call.id);
         call = joinResponse.videoCall;
-        console.log('[WebRTC Screen] Call joined, new status:', call.status);
       }
 
       setVideoCall(call);
 
       // 2. Conectar ao servidor de sinalização
-      console.log('[WebRTC Screen] Connecting to signaling server...');
-      await webrtcService.connect(token);
+      await WebRTCService.connect();
 
-      // 3. Iniciar chamada WebRTC
-      console.log('[WebRTC Screen] Starting WebRTC call...');
+      // 3. Iniciar a chamada WebRTC
       await webrtcService.startCall(
         conversationId,
         user.id,
@@ -195,13 +187,10 @@ export default function WebRTCVideoCallScreen() {
 
   const endCall = async () => {
     try {
-      console.log('[WebRTC Screen] Ending call...');
-      
       // Encerrar no servidor primeiro
       if (videoCall) {
         try {
           await VideoCallService.endVideoCall(videoCall.id);
-          console.log('[WebRTC Screen] ✅ Call ended on server');
         } catch (serverError) {
           console.error('[WebRTC Screen] ❌ Failed to end call on server:', serverError);
           // Continua mesmo se falhar no servidor
@@ -211,7 +200,6 @@ export default function WebRTCVideoCallScreen() {
       // Encerrar localmente
       try {
         webrtcService.endCall();
-        console.log('[WebRTC Screen] ✅ Local call ended');
       } catch (localError) {
         console.error('[WebRTC Screen] ❌ Failed to end local call:', localError);
       }
@@ -222,9 +210,7 @@ export default function WebRTCVideoCallScreen() {
 
   const cleanup = () => {
     try {
-      console.log('[WebRTC Screen] Cleanup');
       webrtcService.disconnect();
-      console.log('[WebRTC Screen] ✅ Cleanup completed');
     } catch (error) {
       console.error('[WebRTC Screen] ❌ Error during cleanup:', error);
     }

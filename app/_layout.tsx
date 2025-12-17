@@ -13,15 +13,12 @@ export default function RootLayout() {
 
   // Carregar dados do usuário ao iniciar
   useEffect(() => {
-    console.log('🔄 Iniciando loadUser...');
     const timer = setTimeout(() => {
-      console.warn('⏱️ LoadUser timeout - forçando conclusão');
       setInitialized(true);
     }, 3000);
 
     loadUser()
       .then(() => {
-        console.log('✅ LoadUser concluído');
         setInitialized(true);
       })
       .catch(err => {
@@ -44,7 +41,6 @@ export default function RootLayout() {
     
     // Apenas proteger tabs - não interferir em outras navegações
     if (!isAuthenticated && inAuthGroup) {
-      console.log('➡️ Redirecionando para /login (não autenticado)');
       router.replace('/login');
     }
   }, [isAuthenticated, segments, isLoading, error, initialized, router]);

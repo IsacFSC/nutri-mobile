@@ -27,7 +27,6 @@ export default function ScheduleScreen() {
     try {
       setIsLoading(true);
       const data = await AppointmentService.getAppointments();
-      console.log('Appointments loaded:', data?.length || 0, 'appointments');
       setAllAppointments(data || []);
     } catch (error: any) {
       console.error('Error loading appointments:', error);

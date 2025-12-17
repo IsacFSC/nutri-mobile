@@ -51,7 +51,6 @@ class NotificationsService {
     }
 
     if (finalStatus !== 'granted') {
-      console.log('Permissão de notificação negada');
       return false;
     }
 
@@ -141,8 +140,6 @@ class NotificationsService {
         },
       });
     }
-
-    console.log(`✅ ${remindersPerDay + 1} lembretes de água agendados`);
   }
 
   async cancelWaterReminders(): Promise<void> {

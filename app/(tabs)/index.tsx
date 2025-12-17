@@ -25,8 +25,6 @@ export default function HomeScreen() {
       setLoadingStats(true);
       if (user?.role === 'NUTRITIONIST') {
         const data = await DashboardService.getNutritionistStats();
-        console.log('[Dashboard] Stats recebidas:', JSON.stringify(data, null, 2));
-        console.log('[Dashboard] Upcoming appointments:', data.upcomingAppointments?.length || 0);
         setNutritionistStats(data);
       } else if (user?.role === 'ADMIN') {
         const data = await DashboardService.getAdminStats();

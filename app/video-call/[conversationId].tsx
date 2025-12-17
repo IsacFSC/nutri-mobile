@@ -19,8 +19,6 @@ export default function VideoCallScreen() {
   const loadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    console.log('[VideoCall] Tela montada, conversationId:', conversationId);
-    console.log('[VideoCall] Usuário atual:', user?.name, 'Role:', user?.role);
     initVideoCall();
     
     // Timeout de 15 segundos para detectar travamento
@@ -49,12 +47,9 @@ export default function VideoCallScreen() {
   const initVideoCall = async () => {
     try {
       setLoading(true);
-      console.log('[VideoCall] Iniciando initVideoCall...');
 
       // Verificar se já existe chamada ativa
-      console.log('[VideoCall] Buscando chamada ativa para conversa:', conversationId);
       const { videoCall: activeCall } = await VideoCallService.getActiveVideoCall(conversationId);
-      console.log('[VideoCall] Chamada ativa encontrada?', !!activeCall, activeCall?.roomName);
 
       let call = activeCall;
 

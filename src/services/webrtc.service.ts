@@ -47,7 +47,6 @@ export class WebRTCService {
   private userId: string = '';
 
   constructor() {
-    console.log('[WebRTC] Service initialized');
   }
 
   /**
@@ -62,7 +61,6 @@ export class WebRTCService {
         });
 
         this.socket.on('connect', () => {
-          console.log('[WebRTC] ✅ Connected to signaling server');
           resolve();
         });
 
@@ -87,7 +85,6 @@ export class WebRTCService {
 
     // Usuário conectado
     this.socket.on('user-connected', async (userId: string, socketId: string) => {
-      console.log('[WebRTC] 👤 User connected:', userId);
       // Se já temos stream local, criar oferta
       if (this.localStream) {
         await this.createOffer();
@@ -96,25 +93,21 @@ export class WebRTCService {
 
     // Receber oferta
     this.socket.on('offer', async (offer: RTCSessionDescriptionInit, socketId: string) => {
-      console.log('[WebRTC] 📥 Received offer from:', socketId);
       await this.handleOffer(offer);
     });
 
     // Receber resposta
     this.socket.on('answer', async (answer: RTCSessionDescriptionInit, socketId: string) => {
-      console.log('[WebRTC] 📥 Received answer from:', socketId);
       await this.handleAnswer(answer);
     });
 
     // Receber ICE candidate
     this.socket.on('ice-candidate', async (candidate: RTCIceCandidateInit, socketId: string) => {
-      console.log('[WebRTC] 🧊 Received ICE candidate from:', socketId);
       await this.handleIceCandidate(candidate);
     });
 
     // Usuário desconectado
     this.socket.on('user-disconnected', (socketId: string) => {
-      console.log('[WebRTC] 👋 User disconnected:', socketId);
     });
   }
 
@@ -131,8 +124,6 @@ export class WebRTCService {
       this.roomId = roomId;
       this.userId = userId;
 
-      console.log('[WebRTC] 🎥 Starting call in room:', roomId);
-
       // 1. Obter stream local (câmera + microfone)
       this.localStream = await this.getLocalStream();
       onLocalStream(this.localStream);
@@ -148,8 +139,6 @@ export class WebRTCService {
 
       // 4. Entrar na sala
       this.socket?.emit('join-room', roomId, userId);
-
-      console.log('[WebRTC] ✅ Call started successfully');
     } catch (error) {
       console.error('[WebRTC] ❌ Failed to start call:', error);
       throw error;
@@ -171,7 +160,6 @@ export class WebRTCService {
         audio: true,
       });
 
-      console.log('[WebRTC] 🎥 Local stream obtained');
       return stream;
     } catch (error) {
       console.error('[WebRTC] ❌ Failed to get local stream:', error);

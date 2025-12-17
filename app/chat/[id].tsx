@@ -107,9 +107,7 @@ export default function ChatScreen() {
   const loadConversation = async (silent = false) => {
     try {
       if (!silent) setLoading(true);
-      console.log(`[Chat] Loading conversation ${id}`);
       const response = await api.get(`/conversations/${id}`);
-      console.log(`[Chat] Conversation loaded:`, response.data);
       setConversation(response.data);
       setMessages(response.data.messages || []);
     } catch (error: any) {
@@ -188,7 +186,6 @@ export default function ChatScreen() {
             {
               text: 'Entrar',
               onPress: () => {
-                console.log('[Chat] Navegando para videochamada WebRTC, conversationId:', id);
                 router.push(`/video-call-webrtc/${id}`);
               },
             },

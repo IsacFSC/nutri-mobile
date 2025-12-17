@@ -61,16 +61,12 @@ export const JITSI_CONFIG = {
   // Script injetado no WebView
   injectedScript: `
     (function() {
-      console.log('[Jitsi] 🔒 Inicializando proteções anti-login...');
-      
       // 1. BLOQUEAR DEEP LINKS E REDIRECIONAMENTOS
       window.location.assign = function(url) {
-        console.log('[Jitsi] ⛔ Bloqueando redirecionamento:', url);
         return false;
       };
       
       window.open = function(url) {
-        console.log('[Jitsi] ⛔ Bloqueando window.open:', url);
         return null;
       };
       
@@ -81,7 +77,6 @@ export const JITSI_CONFIG = {
         if (url && typeof url === 'string') {
           const blockedKeywords = ['auth', 'login', 'token', 'sso', 'oauth', 'signin'];
           if (blockedKeywords.some(keyword => url.toLowerCase().includes(keyword))) {
-            console.log('[Jitsi] ⛔ Bloqueando requisição:', url);
             return Promise.resolve(new Response('{}', {status: 200, headers: {'Content-Type': 'application/json'}}));
           }
         }
@@ -99,7 +94,6 @@ export const JITSI_CONFIG = {
         
         selectors.forEach(selector => {
           document.querySelectorAll(selector).forEach(el => {
-            console.log('[Jitsi] 🗑️ Removendo elemento de login:', selector);
             el.style.display = 'none';
             el.remove();
           });
@@ -110,8 +104,6 @@ export const JITSI_CONFIG = {
       setTimeout(removeLoginElements, 1000);
       setTimeout(removeLoginElements, 3000);
       setTimeout(removeLoginElements, 5000);
-      
-      console.log('[Jitsi] ✅ Proteções ativadas');
     })();
     true;
   `,

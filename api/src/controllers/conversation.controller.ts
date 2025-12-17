@@ -110,8 +110,6 @@ export const getConversation = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const userId = req.userId;
 
-    console.log(`[Conversation] Getting conversation ${id} for user ${userId}`);
-
     const conversation = await prisma.conversation.findUnique({
       where: { id },
       include: {
@@ -164,11 +162,8 @@ export const getConversation = async (req: AuthRequest, res: Response) => {
     });
 
     if (!conversation) {
-      console.log(`[Conversation] Conversation ${id} not found`);
       return res.status(404).json({ error: 'Conversa não encontrada' });
     }
-
-    console.log(`[Conversation] Found conversation ${id}, status: ${conversation.status}`);
 
     // Verificar permissão de acesso
     const userProfile = req.userRole === 'NUTRITIONIST' 
@@ -176,7 +171,6 @@ export const getConversation = async (req: AuthRequest, res: Response) => {
       : await prisma.patient.findUnique({ where: { userId } });
 
     if (!userProfile) {
-      console.log(`[Conversation] User profile not found for userId: ${userId}`);
       return res.status(403).json({ error: 'Perfil de usuário não encontrado' });
     }
 
@@ -185,7 +179,6 @@ export const getConversation = async (req: AuthRequest, res: Response) => {
       : conversation.patientId === userProfile.id;
 
     if (!hasAccess) {
-      console.log(`[Conversation] Access denied for user ${userId} to conversation ${id}`);
       return res.status(403).json({ error: 'Acesso negado a esta conversa' });
     }
 
@@ -199,7 +192,6 @@ export const getConversation = async (req: AuthRequest, res: Response) => {
       data: { isRead: true },
     });
 
-    console.log(`[Conversation] Successfully returning conversation ${id} with ${conversation.messages.length} messages`);
     res.json(conversation);
   } catch (error) {
     console.error('[Conversation] Error fetching conversation:', error);

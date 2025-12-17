@@ -20,8 +20,6 @@ export const getNutritionistStats = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Nutricionista não encontrado' });
     }
 
-    console.log(`[Dashboard] Stats request from: ${nutritionist.user.name} (${nutritionist.user.email})`);
-
     // Contar pacientes ativos (diretos ou com consultas)
     const activePatientsCount = await prisma.patient.count({
       where: {
@@ -94,13 +92,6 @@ export const getNutritionistStats = async (req: AuthRequest, res: Response) => {
       recipesCount,
       upcomingAppointments,
     };
-
-    console.log(`[Dashboard] Returning stats:`, {
-      activePatientsCount,
-      todayAppointmentsCount,
-      recipesCount,
-      upcomingAppointmentsCount: upcomingAppointments.length
-    });
 
     res.json(stats);
   } catch (error) {
