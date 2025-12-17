@@ -14,12 +14,12 @@ const API_BASE_URL = __DEV__
   ? `http://${LOCAL_IP}:3000/api` // Dispositivo físico / Expo Go
   // ? 'http://10.0.2.2:3000/api' // Descomente para Android Emulator
   // ? 'http://localhost:3000/api' // Descomente para iOS Simulator
-  : 'https://sua-api-producao.com/api';
+  : 'https://nutri-mobile-api.onrender.com/api';
 
 // Export da URL base (sem /api para Socket.IO)
 export const API_URL = __DEV__
   ? `http://${LOCAL_IP}:3000`
-  : 'https://sua-api-producao.com';
+  : 'https://nutri-mobile-api.onrender.com';
 
 // Criar instância do axios
 export const api = axios.create({
