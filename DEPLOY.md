@@ -23,7 +23,28 @@
 
 ## 🌐 Deploy da API Backend
 
-### **Opção 1: Railway (Recomendado)**
+### **🏆 Opção 1: Render (Recomendado - 100% Gratuito)**
+
+✅ **Melhor para este projeto:**
+- Totalmente gratuito (750h/mês = 24/7)
+- Suporta Socket.IO + WebRTC
+- Build automático do GitHub
+- SSL/HTTPS grátis
+
+📚 **[Guia completo: DEPLOY_RENDER.md](./DEPLOY_RENDER.md)**
+
+#### Deploy Rápido:
+1. Acesse: https://render.com
+2. New → Web Service
+3. Conecte GitHub: `nutri-mobile`
+4. Root Directory: `api`
+5. Build: `npm install && npx prisma generate && npm run build`
+6. Start: `npx prisma migrate deploy && node dist/index.js`
+7. Adicione variáveis de ambiente (ver `.env.example`)
+
+---
+
+### **Opção 2: Railway (Pago - $5/mês)**
 
 #### 1. Criar conta no Railway
 ```bash

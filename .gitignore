@@ -76,6 +76,10 @@ bugreport-*.zip
 # TypeScript
 *.tsbuildinfo
 
+# Markdown files (except README.md)
+*.md
+!README.md
+
 # Misc
 coverage/
 .vscode/
