@@ -24,7 +24,7 @@ export const API_URL = __DEV__
 // Criar instância do axios
 export const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 30000, // 30 segundos para evitar timeout no cold start do Render
   headers: {
     'Content-Type': 'application/json',
   },

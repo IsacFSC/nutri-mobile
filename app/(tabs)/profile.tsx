@@ -20,13 +20,15 @@ export default function ProfileScreen() {
   const { user, logout } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [stats, setStats] = useState({ patientsCount: 0, appointmentsCount: 0, recipesCount: 0 });
-  const isNutritionist = user?.role === UserRole.NUTRITIONIST || user?.role === UserRole.ADMIN;
+  const isNutritionist = user?.role === UserRole.NUTRITIONIST;
+  const isAdmin = user?.role === UserRole.ADMIN;
+  const isNutritionistOrAdmin = isNutritionist || isAdmin;
 
   useEffect(() => {
-    if (isNutritionist) {
+    if (isNutritionistOrAdmin) {
       loadStats();
     }
-  }, [isNutritionist]);
+  }, [isNutritionistOrAdmin]);
 
   const loadStats = async () => {
     try {
@@ -86,11 +88,19 @@ export default function ProfileScreen() {
 
   const menuItems = isNutritionist
     ? [
+        // Menu para Nutricionistas
         {
           icon: 'person-outline',
           title: 'Dados Pessoais',
           subtitle: 'Editar informações do perfil',
-          onPress: () => {},
+          onPress: () => router.push('/edit-profile'),
+        },
+        {
+          icon: 'briefcase-outline',
+          title: 'Dados Profissionais',
+          subtitle: 'CRN, certificados, experiência',
+          color: Colors.primary,
+          onPress: () => router.push('/edit-professional-info'),
         },
         {
           icon: 'shield-checkmark-outline',
@@ -105,12 +115,6 @@ export default function ProfileScreen() {
           subtitle: 'Atualizar foto do perfil',
           color: Colors.warning,
           onPress: handleChangeAvatar,
-        },
-        {
-          icon: 'briefcase-outline',
-          title: 'Informações Profissionais',
-          subtitle: 'CRN, especialidades, horários',
-          onPress: () => {},
         },
         {
           icon: 'lock-closed-outline',
@@ -134,13 +138,92 @@ export default function ProfileScreen() {
         {
           icon: 'stats-chart-outline',
           title: 'Relatórios',
-          subtitle: 'Estatísticas e desempenho',
-          onPress: () => {},
+          subtitle: 'Tabela de atendimentos',
+          color: Colors.info,
+          onPress: () => router.push('/reports'),
         },
         {
           icon: 'wallet-outline',
-          title: 'Financeiro',
-          subtitle: 'Planos e pagamentos',
+          title: 'Financeiro - Caixa',
+          subtitle: 'Pagamentos e movimentações',
+          color: Colors.success,
+          onPress: () => router.push('/cash-box'),
+        },
+        {
+          icon: 'help-circle-outline',
+          title: 'Ajuda e Suporte',
+          subtitle: 'Central de ajuda e tutoriais',
+          onPress: () => {},
+        },
+      ]
+    : isAdmin
+    ? [
+        // Menu para Administradores
+        {
+          icon: 'person-outline',
+          title: 'Dados Pessoais',
+          subtitle: 'Editar informações do perfil',
+          onPress: () => router.push('/edit-profile'),
+        },
+        {
+          icon: 'shield-checkmark-outline',
+          title: 'Autenticação MFA',
+          subtitle: 'Configurar autenticação de dois fatores',
+          color: Colors.info,
+          onPress: () => Alert.alert('MFA', 'Funcionalidade em desenvolvimento'),
+        },
+        {
+          icon: 'camera-outline',
+          title: 'Alterar Avatar',
+          subtitle: 'Atualizar foto do perfil',
+          color: Colors.warning,
+          onPress: handleChangeAvatar,
+        },
+        {
+          icon: 'business-outline',
+          title: 'Gerenciar Organizações',
+          subtitle: 'Administrar clínicas e organizações',
+          color: Colors.primary,
+          onPress: () => router.push('/admin/organizations'),
+        },
+        {
+          icon: 'people-outline',
+          title: 'Gerenciar Nutricionistas',
+          subtitle: 'Administrar profissionais',
+          color: Colors.primary,
+          onPress: () => router.push('/admin/nutritionists'),
+        },
+        {
+          icon: 'stats-chart-outline',
+          title: 'Relatórios',
+          subtitle: 'Tabela de atendimentos gerais',
+          color: Colors.info,
+          onPress: () => router.push('/reports'),
+        },
+        {
+          icon: 'wallet-outline',
+          title: 'Financeiro - Caixa',
+          subtitle: 'Visão geral financeira',
+          color: Colors.success,
+          onPress: () => router.push('/cash-box'),
+        },
+        {
+          icon: 'lock-closed-outline',
+          title: 'Segurança e Privacidade',
+          subtitle: 'Alterar senha, logs de auditoria',
+          onPress: () => {},
+        },
+        {
+          icon: 'document-text-outline',
+          title: 'LGPD - Meus Dados',
+          subtitle: 'Exportar, visualizar ou excluir dados',
+          color: Colors.success,
+          onPress: () => Alert.alert('LGPD', 'Exportar dados, visualizar logs de auditoria ou solicitar exclusão'),
+        },
+        {
+          icon: 'notifications-outline',
+          title: 'Notificações',
+          subtitle: 'Gerenciar preferências de notificação',
           onPress: () => {},
         },
         {
@@ -151,11 +234,12 @@ export default function ProfileScreen() {
         },
       ]
     : [
+        // Menu para Pacientes
         {
           icon: 'person-outline',
           title: 'Dados Pessoais',
           subtitle: 'Editar informações do perfil',
-          onPress: () => {},
+          onPress: () => router.push('/edit-profile'),
         },
         {
           icon: 'shield-checkmark-outline',

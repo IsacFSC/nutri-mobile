@@ -49,7 +49,7 @@ export const videoCallController = {
         return res.json({ videoCall: activeCall });
       }
 
-      // Criar nome único para a sala Jitsi
+      // Criar nome único para a sala WebRTC
       const roomName = `nutri-${conversationId}-${Date.now()}`;
 
       // Criar nova videochamada

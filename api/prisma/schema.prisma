@@ -85,6 +85,11 @@ model User {
   role      UserRole @default(PATIENT)
   avatar    String?
   phone     String?
+  cpf       String?
+  address   String?
+  city      String?
+  state     String?
+  zipCode   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -265,6 +270,7 @@ model Patient {
   scheduledFeatures  ScheduledFeature[]
   conversations      Conversation[]
   consultationNotes  ConsultationNote[]
+  financialTransactions FinancialTransaction[]
 
   @@map("patients")
 }
@@ -280,6 +286,15 @@ model Nutritionist {
   specialization String?
   crn            String? // Registro profissional
   bio            String? // Biografia/descrição
+  
+  // Professional Info
+  graduationInstitution String?
+  graduationYear        Int?
+  postGraduations       String? // JSON ou texto com pós-graduações
+  certifications        String? // JSON ou texto com certificações
+  professionalExperience String?
+  serviceAreas          String? // Áreas de atendimento
+  clinicalAddress       String?
   
   // Professional Status
   isActive       Boolean @default(true)
@@ -299,6 +314,7 @@ model Nutritionist {
   recipes         Recipe[]
   exercises       Exercise[]
   conversations   Conversation[]
+  financialTransactions FinancialTransaction[]
 
   @@map("nutritionists")
 }
@@ -343,6 +359,7 @@ model Appointment {
   patient      Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
   nutritionist Nutritionist @relation(fields: [nutritionistId], references: [id])
   conversation Conversation?
+  financialTransactions FinancialTransaction[]
 
   @@map("appointments")
 }
@@ -779,6 +796,70 @@ model PaymentAlert {
   @@map("payment_alerts")
 }
 
+// ============================================
+// FINANCIAL TRANSACTIONS (CAIXA)
+// ============================================
+
+model FinancialTransaction {
+  id                String                    @id @default(uuid())
+  patientId         String
+  nutritionistId    String
+  appointmentId     String?
+  
+  type              TransactionType           // INCOME, EXPENSE, ADMIN_FEE
+  category          String                    // CONSULTATION, MEAL_PLAN, etc
+  amount            Float
+  paymentMethod     PaymentMethod
+  
+  // Comprovante
+  proofNumber       String?                   // Número do comprovante
+  proofImage        String?                   // URL da imagem
+  
+  // Taxas
+  adminFeePercent   Float                     @default(10.0)
+  adminFeeAmount    Float                     // 10% para admin
+  netAmount         Float                     // Valor líquido para nutricionista
+  
+  description       String?
+  notes             String?
+  
+  status            TransactionStatus         @default(PENDING)
+  processedAt       DateTime?
+  
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+
+  patient      Patient      @relation(fields: [patientId], references: [id])
+  nutritionist Nutritionist @relation(fields: [nutritionistId], references: [id])
+  appointment  Appointment? @relation(fields: [appointmentId], references: [id])
+
+  @@index([nutritionistId])
+  @@index([patientId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("financial_transactions")
+}
+
+enum TransactionType {
+  INCOME        // Receita (pagamento de paciente)
+  EXPENSE       // Despesa
+  ADMIN_FEE     // Taxa administrativa
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  DEBIT_CARD
+  PIX
+  CASH
+  BANK_TRANSFER
+}
+
+enum TransactionStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
 enum VideoCallStatus {
   WAITING
   ACTIVE
@@ -789,7 +870,7 @@ enum VideoCallStatus {
 model VideoCall {
   id             String          @id @default(uuid())
   conversationId String
-  roomName       String          @unique // Nome da sala Jitsi
+  roomName       String          @unique // Nome da sala WebRTC
   startedAt      DateTime        @default(now())
   endedAt        DateTime?
   duration       Int?            // Duração em minutos

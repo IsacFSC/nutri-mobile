@@ -12,6 +12,12 @@ export interface User {
   name: string;
   role: UserRole;
   avatar?: string;
+  phone?: string;
+  cpf?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
   createdAt: Date;
   updatedAt: Date;
   // Relations (optional)

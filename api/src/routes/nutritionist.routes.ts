@@ -242,4 +242,12 @@ router.delete('/:id', authenticateToken, authorizeRoles('ADMIN'), async (req: Re
   }
 });
 
+// GET /api/nutritionists/me - Obter dados do nutricionista atual
+import { getCurrentNutritionist, updateProfessionalInfo } from '../controllers/nutritionist.controller';
+
+router.get('/me', authenticateToken, authorizeRoles('NUTRITIONIST'), getCurrentNutritionist);
+
+// PUT /api/nutritionists/professional-info - Atualizar informações profissionais
+router.put('/professional-info', authenticateToken, authorizeRoles('NUTRITIONIST'), updateProfessionalInfo);
+
 export default router;

@@ -473,3 +473,113 @@ export const transferPatients = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Erro ao transferir pacientes' });
   }
 };
+
+// ============================================
+// GET CURRENT NUTRITIONIST
+// ============================================
+export const getCurrentNutritionist = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+
+    const nutritionist = await prisma.nutritionist.findUnique({
+      where: { userId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            avatar: true,
+            phone: true,
+          },
+        },
+        organization: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!nutritionist) {
+      return res.status(404).json({ error: 'Nutricionista não encontrado' });
+    }
+
+    res.json(nutritionist);
+  } catch (error) {
+    console.error('Erro ao buscar nutricionista:', error);
+    res.status(500).json({ error: 'Erro ao buscar dados do nutricionista' });
+  }
+};
+
+// ============================================
+// UPDATE PROFESSIONAL INFO
+// ============================================
+export const updateProfessionalInfo = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const {
+      specialization,
+      crn,
+      bio,
+      graduationInstitution,
+      graduationYear,
+      postGraduations,
+      certifications,
+      professionalExperience,
+      serviceAreas,
+      clinicalAddress,
+    } = req.body;
+
+    // Verificar se o usuário é um nutricionista
+    const nutritionist = await prisma.nutritionist.findUnique({
+      where: { userId },
+    });
+
+    if (!nutritionist) {
+      return res.status(404).json({ error: 'Nutricionista não encontrado' });
+    }
+
+    // Validação básica
+    if (!crn || !crn.trim()) {
+      return res.status(400).json({ error: 'CRN é obrigatório' });
+    }
+
+    // Atualizar informações profissionais
+    const updatedNutritionist = await prisma.nutritionist.update({
+      where: { id: nutritionist.id },
+      data: {
+        specialization: specialization?.trim() || null,
+        crn: crn.trim(),
+        bio: bio?.trim() || null,
+        graduationInstitution: graduationInstitution?.trim() || null,
+        graduationYear: graduationYear || null,
+        postGraduations: postGraduations?.trim() || null,
+        certifications: certifications?.trim() || null,
+        professionalExperience: professionalExperience?.trim() || null,
+        serviceAreas: serviceAreas?.trim() || null,
+        clinicalAddress: clinicalAddress?.trim() || null,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            avatar: true,
+            phone: true,
+          },
+        },
+      },
+    });
+
+    res.json({
+      message: 'Informações profissionais atualizadas com sucesso',
+      nutritionist: updatedNutritionist,
+    });
+  } catch (error) {
+    console.error('Erro ao atualizar informações profissionais:', error);
+    res.status(500).json({ error: 'Erro ao atualizar informações profissionais' });
+  }
+};

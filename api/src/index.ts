@@ -21,6 +21,8 @@ import conversationRoutes from './routes/conversation.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import videoCallRoutes from './routes/videoCall.routes';
 import consultationNoteRoutes from './routes/consultationNote.routes';
+import reportsRoutes from './routes/reports.routes';
+import financialRoutes from './routes/financial.routes';
 import DatabaseConnection from './utils/db';
 
 dotenv.config();
@@ -58,6 +60,8 @@ app.use('/api/conversations', conversationRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/video-calls', videoCallRoutes);
 app.use('/api/consultation-notes', consultationNoteRoutes);
+app.use('/api/reports', reportsRoutes);
+app.use('/api/financial', financialRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

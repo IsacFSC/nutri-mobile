@@ -67,6 +67,7 @@ export default function ChatScreen() {
   const [sending, setSending] = useState(false);
   const [canStart, setCanStart] = useState(false);
   const [timeUntilStart, setTimeUntilStart] = useState('');
+  const [activeVideoCall, setActiveVideoCall] = useState<any>(null);
   const flatListRef = useRef<FlatList>(null);
   const pollInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const videoCallCheckInterval = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -166,17 +167,20 @@ export default function ChatScreen() {
       const response = await api.get(`/video-calls/conversation/${id}/active`);
       const activeCall = response.data.videoCall;
 
+      // Atualizar estado da chamada ativa
+      setActiveVideoCall(activeCall);
+
       if (activeCall && activeCall.initiatedBy !== user?.id && notifiedVideoCallId.current !== activeCall.id) {
         // Marcar como notificado
         notifiedVideoCallId.current = activeCall.id;
         
         // Outra pessoa iniciou a chamada - mostrar notificação
         Alert.alert(
-          '📹 Videochamada Iniciada',
-          `${user?.role === 'NUTRITIONIST' ? 'O paciente' : 'A nutricionista'} iniciou uma videochamada. Deseja participar?`,
+          '📹 Videochamada em Andamento',
+          `${user?.role === 'NUTRITIONIST' ? 'O paciente está' : 'A nutricionista está'} te chamando para uma videochamada!`,
           [
             {
-              text: 'Agora não',
+              text: 'Recusar',
               style: 'cancel',
               onPress: () => {
                 // Reiniciar polling após recusar
@@ -184,7 +188,7 @@ export default function ChatScreen() {
               }
             },
             {
-              text: 'Entrar',
+              text: 'Atender',
               onPress: () => {
                 router.push(`/video-call-webrtc/${id}`);
               },
@@ -408,7 +412,7 @@ export default function ChatScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <View style={styles.header}>
@@ -428,7 +432,7 @@ export default function ChatScreen() {
             </Text>
           )}
         </View>
-        {isActive && (
+        {isActive && user?.role === 'NUTRITIONIST' && (
           <TouchableOpacity 
             onPress={() => router.push(`/video-call-webrtc/${id}`)} 
             style={styles.videoButton}
@@ -442,6 +446,22 @@ export default function ChatScreen() {
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Banner de chamada ativa para o paciente/outro usuário */}
+      {activeVideoCall && activeVideoCall.initiatedBy !== user?.id && (
+        <View style={styles.videoCallBanner}>
+          <Ionicons name="videocam" size={24} color="#fff" />
+          <Text style={styles.videoCallBannerText}>
+            {user?.role === 'NUTRITIONIST' ? 'Paciente' : 'Nutricionista'} está em videochamada
+          </Text>
+          <TouchableOpacity 
+            onPress={() => router.push(`/video-call-webrtc/${id}`)}
+            style={styles.joinCallButton}
+          >
+            <Text style={styles.joinCallButtonText}>ATENDER</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {!canSendMessage && isScheduled && (
         <View style={styles.blockedBanner}>
@@ -653,5 +673,31 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     backgroundColor: Colors.background,
+  },
+  videoCallBanner: {
+    backgroundColor: '#10B981',
+    padding: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: '#059669',
+  },
+  videoCallBannerText: {
+    ...Typography.body2,
+    color: '#fff',
+    flex: 1,
+    fontWeight: '600',
+  },
+  joinCallButton: {
+    backgroundColor: '#fff',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: 20,
+  },
+  joinCallButtonText: {
+    ...Typography.body2,
+    color: '#10B981',
+    fontWeight: 'bold',
   },
 });

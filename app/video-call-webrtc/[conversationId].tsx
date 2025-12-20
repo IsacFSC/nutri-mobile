@@ -93,7 +93,6 @@ export default function WebRTCVideoCallScreen() {
         const createResponse = await VideoCallService.startVideoCall(conversationId);
         call = createResponse.videoCall;
       } else {
-        console.log('[WebRTC Screen] Joining existing call:', call.id, 'status:', call.status);
         // Marcar como ativa ao entrar
         const joinResponse = await VideoCallService.joinVideoCall(call.id);
         call = joinResponse.videoCall;
@@ -102,25 +101,21 @@ export default function WebRTCVideoCallScreen() {
       setVideoCall(call);
 
       // 2. Conectar ao servidor de sinalização
-      await WebRTCService.connect();
+      await webrtcService.connect(token);
 
       // 3. Iniciar a chamada WebRTC
       await webrtcService.startCall(
         conversationId,
         user.id,
         (stream) => {
-          console.log('[WebRTC Screen] Local stream received');
           setLocalStream(stream);
           setLoading(false);
         },
         (stream) => {
-          console.log('[WebRTC Screen] Remote stream received');
           setRemoteStream(stream);
           setConnecting(false);
         }
       );
-
-      console.log('[WebRTC Screen] ✅ Video call initialized');
     } catch (error: any) {
       console.error('[WebRTC Screen] Failed to initialize:', error);
       Alert.alert(

@@ -13,6 +13,9 @@ router.get('/me', userController.getCurrentUser);
 // PUT /api/users/me
 router.put('/me', userController.updateCurrentUser);
 
+// PUT /api/users/profile - Atualizar perfil completo
+router.put('/profile', userController.updateProfile);
+
 // GET /api/users/:id
 router.get('/:id', userController.getUserById);
 

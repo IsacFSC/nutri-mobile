@@ -183,6 +183,34 @@ export default function AdminDashboard() {
           </View>
           <Text style={styles.actionButtonArrow}>›</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => router.push('/reports')}
+        >
+          <Text style={styles.actionButtonIcon}>📊</Text>
+          <View style={styles.actionButtonContent}>
+            <Text style={styles.actionButtonTitle}>Relatórios</Text>
+            <Text style={styles.actionButtonSubtitle}>
+              Tabela de atendimentos e estatísticas
+            </Text>
+          </View>
+          <Text style={styles.actionButtonArrow}>›</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => router.push('/cash-box')}
+        >
+          <Text style={styles.actionButtonIcon}>💰</Text>
+          <View style={styles.actionButtonContent}>
+            <Text style={styles.actionButtonTitle}>Financeiro - Caixa</Text>
+            <Text style={styles.actionButtonSubtitle}>
+              Pagamentos e movimentações financeiras
+            </Text>
+          </View>
+          <Text style={styles.actionButtonArrow}>›</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Organizações Recentes */}
