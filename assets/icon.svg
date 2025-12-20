@@ -1,0 +1,50 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="512" cy="512" r="512" fill="#4CAF50"/>
+  
+  <!-- Inner Circle -->
+  <circle cx="512" cy="512" r="440" fill="#388E3C"/>
+  
+  <!-- Main Content Circle -->
+  <circle cx="512" cy="512" r="380" fill="#4CAF50"/>
+  
+  <!-- Heart Shape (Health) -->
+  <path d="M512 680C512 680 320 560 320 420C320 350 370 310 420 310C455 310 485 325 512 355C539 325 569 310 604 310C654 310 704 350 704 420C704 560 512 680 512 680Z" fill="#FFFFFF"/>
+  
+  <!-- Leaf 1 (Nutrition) -->
+  <path d="M400 480C400 480 360 420 360 380C360 340 380 320 410 320C430 320 450 330 460 350C460 350 450 400 400 480Z" fill="#81C784"/>
+  
+  <!-- Leaf 2 (Nutrition) -->
+  <path d="M624 480C624 480 664 420 664 380C664 340 644 320 614 320C594 320 574 330 564 350C564 350 574 400 624 480Z" fill="#81C784"/>
+  
+  <!-- Fork -->
+  <g transform="translate(420, 560)">
+    <rect x="28" y="0" width="8" height="120" rx="4" fill="#FF9800"/>
+    <rect x="8" y="0" width="8" height="80" rx="4" fill="#FF9800"/>
+    <rect x="48" y="0" width="8" height="80" rx="4" fill="#FF9800"/>
+    <rect x="20" y="75" width="24" height="8" rx="4" fill="#FF9800"/>
+  </g>
+  
+  <!-- Knife -->
+  <g transform="translate(540, 560)">
+    <rect x="18" y="0" width="8" height="120" rx="4" fill="#F57C00"/>
+    <path d="M14 0L30 0L26 40L18 40Z" fill="#F57C00"/>
+  </g>
+  
+  <!-- Apple (Nutrition symbol) -->
+  <ellipse cx="512" cy="400" rx="45" ry="50" fill="#FFFFFF" opacity="0.9"/>
+  <rect x="507" y="350" width="10" height="25" rx="5" fill="#81C784"/>
+  <path d="M520 360C520 360 535 355 540 370" stroke="#81C784" stroke-width="4" fill="none"/>
+  
+  <!-- Decorative Elements - Small Circles -->
+  <circle cx="380" cy="350" r="12" fill="#81C784" opacity="0.6"/>
+  <circle cx="644" cy="350" r="12" fill="#81C784" opacity="0.6"/>
+  <circle cx="420" cy="650" r="10" fill="#FFB74D" opacity="0.5"/>
+  <circle cx="604" cy="650" r="10" fill="#FFB74D" opacity="0.5"/>
+  
+  <!-- Plus Sign (Medical) -->
+  <g transform="translate(680, 280)">
+    <rect x="15" y="0" width="10" height="40" rx="3" fill="#FFFFFF" opacity="0.7"/>
+    <rect x="0" y="15" width="40" height="10" rx="3" fill="#FFFFFF" opacity="0.7"/>
+  </g>
+</svg>

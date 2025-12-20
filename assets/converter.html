@@ -1,0 +1,81 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Converter SVG para PNG</title>
+</head>
+<body>
+  <h2>Conversor de Ícone SVG para PNG</h2>
+  <p>Abra o arquivo icon.svg, copie para um editor online ou use este HTML para converter.</p>
+  
+  <h3>Opção 1: Usar serviço online</h3>
+  <ul>
+    <li><a href="https://cloudconvert.com/svg-to-png" target="_blank">CloudConvert</a></li>
+    <li><a href="https://convertio.co/svg-png/" target="_blank">Convertio</a></li>
+    <li><a href="https://svgtopng.com/" target="_blank">SVG to PNG</a></li>
+  </ul>
+  
+  <h3>Opção 2: Usar este conversor local</h3>
+  <div>
+    <input type="file" id="svgFile" accept=".svg">
+    <button onclick="convertSVG()">Converter para PNG</button>
+  </div>
+  
+  <div style="margin-top: 20px;">
+    <h4>Tamanhos necessários:</h4>
+    <div id="outputs"></div>
+  </div>
+  
+  <script>
+    function convertSVG() {
+      const file = document.getElementById('svgFile').files[0];
+      if (!file) {
+        alert('Selecione um arquivo SVG');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const svgData = e.target.result;
+        const sizes = [
+          { width: 1024, height: 1024, name: 'icon.png' },
+          { width: 512, height: 512, name: 'adaptive-icon.png' },
+          { width: 1284, height: 2778, name: 'splash.png' }
+        ];
+        
+        const outputDiv = document.getElementById('outputs');
+        outputDiv.innerHTML = '';
+        
+        sizes.forEach(size => {
+          const canvas = document.createElement('canvas');
+          canvas.width = size.width;
+          canvas.height = size.height;
+          const ctx = canvas.getContext('2d');
+          
+          const img = new Image();
+          img.onload = function() {
+            ctx.drawImage(img, 0, 0, size.width, size.height);
+            
+            canvas.toBlob(function(blob) {
+              const url = URL.createObjectURL(blob);
+              const div = document.createElement('div');
+              div.style.marginBottom = '10px';
+              div.innerHTML = `
+                <a href="${url}" download="${size.name}">
+                  Download ${size.name} (${size.width}x${size.height})
+                </a>
+              `;
+              outputDiv.appendChild(div);
+            });
+          };
+          
+          img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
+        });
+      };
+      
+      reader.readAsText(file);
+    }
+  </script>
+</body>
+</html>
