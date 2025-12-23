@@ -81,8 +81,9 @@ class NotificationsService {
       throw new Error('Notificações não disponíveis no Expo Go. Para usar esta funcionalidade, compile um development build do app.');
     }
 
-    // Cancelar notificações anteriores
-    await this.cancelWaterReminders();
+    // Cancelar TODAS as notificações agendadas primeiro
+    await Notifications.cancelAllScheduledNotificationsAsync();
+    console.log('[Notifications] Todas notificações anteriores canceladas');
 
     if (!config.enabled) {
       return;
@@ -113,6 +114,7 @@ class NotificationsService {
     ];
 
     // Agendar notificações
+    let scheduledCount = 0;
     for (let i = 0; i <= remindersPerDay; i++) {
       const minutesFromStart = i * config.intervalMinutes;
       const notificationMinutes = startMinutes + minutesFromStart;
@@ -124,22 +126,30 @@ class NotificationsService {
 
       const message = messages[i % messages.length];
 
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: 'Lembrete de Hidratação',
-          body: message,
-          data: { type: 'water_reminder' },
-          sound: true,
-          priority: Notifications.AndroidNotificationPriority.HIGH,
-        },
-        trigger: {
-          hour,
-          minute,
-          repeats: true,
-          channelId: 'water-reminders',
-        },
-      });
+      try {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: 'Lembrete de Hidratação',
+            body: message,
+            data: { type: 'water_reminder', scheduledAt: new Date().toISOString() },
+            sound: true,
+            priority: Notifications.AndroidNotificationPriority.HIGH,
+          },
+          trigger: {
+            hour,
+            minute,
+            repeats: true,
+            channelId: 'water-reminders',
+          },
+        });
+        scheduledCount++;
+        console.log(`[Notifications] Agendada notificação ${scheduledCount} para ${hour}:${minute.toString().padStart(2, '0')}`);
+      } catch (error) {
+        console.error(`[Notifications] Erro ao agendar notificação ${i}:`, error);
+      }
     }
+    
+    console.log(`[Notifications] Total de ${scheduledCount} notificações agendadas`);
   }
 
   async cancelWaterReminders(): Promise<void> {

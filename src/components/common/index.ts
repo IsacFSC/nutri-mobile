@@ -3,3 +3,4 @@ export { Input } from './Input';
 export { Card } from './Card';
 export { Loading } from './Loading';
 export { ProtectedRoute } from './ProtectedRoute';
+export { IncomingCallModal } from './IncomingCallModal';

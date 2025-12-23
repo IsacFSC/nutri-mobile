@@ -15,6 +15,8 @@ import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '@/src/constants';
 import { useAuthStore } from '@/src/store/authStore';
+import { IncomingCallModal } from '@/src/components/common';
+import { VideoCallService } from '@/src/services/videoCall.service';
 import api from '@/src/config/api';
 
 interface Message {
@@ -68,6 +70,8 @@ export default function ChatScreen() {
   const [canStart, setCanStart] = useState(false);
   const [timeUntilStart, setTimeUntilStart] = useState('');
   const [activeVideoCall, setActiveVideoCall] = useState<any>(null);
+  const [showIncomingCall, setShowIncomingCall] = useState(false);
+  const [incomingCallData, setIncomingCallData] = useState<any>(null);
   const flatListRef = useRef<FlatList>(null);
   const pollInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const videoCallCheckInterval = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -102,6 +106,7 @@ export default function ChatScreen() {
     React.useCallback(() => {
       // Recarrega as mensagens ao voltar para esta tela
       loadConversation(true);
+      // NÃO fechar o modal aqui - deixar a lógica de chamada gerenciar isso
     }, [id])
   );
 
@@ -171,36 +176,29 @@ export default function ChatScreen() {
       setActiveVideoCall(activeCall);
 
       if (activeCall && activeCall.initiatedBy !== user?.id && notifiedVideoCallId.current !== activeCall.id) {
-        // Marcar como notificado
+        // Marcar como notificado ANTES de mostrar o modal
         notifiedVideoCallId.current = activeCall.id;
         
-        // Outra pessoa iniciou a chamada - mostrar notificação
-        Alert.alert(
-          '📹 Videochamada em Andamento',
-          `${user?.role === 'NUTRITIONIST' ? 'O paciente está' : 'A nutricionista está'} te chamando para uma videochamada!`,
-          [
-            {
-              text: 'Recusar',
-              style: 'cancel',
-              onPress: () => {
-                // Reiniciar polling após recusar
-                notifiedVideoCallId.current = null;
-              }
-            },
-            {
-              text: 'Atender',
-              onPress: () => {
-                router.push(`/video-call-webrtc/${id}`);
-              },
-            },
-          ],
-          { cancelable: false }
-        );
+        // Mostrar modal de chamada com botões de arrastar
+        const callerName = user?.role === 'NUTRITIONIST' 
+          ? conversation?.patient?.user?.name || 'Paciente'
+          : conversation?.nutritionist?.user?.name || 'Nutricionista';
+        
+        console.log('[Chat] ========================================');
+        console.log('[Chat] VIDEOCHAMADA RECEBIDA!');
+        console.log('[Chat] De:', callerName);
+        console.log('[Chat] ID da chamada:', activeCall.id);
+        console.log('[Chat] Mostrando modal...');
+        console.log('[Chat] ========================================');
+        
+        setIncomingCallData({ callId: activeCall.id, callerName });
+        setShowIncomingCall(true);
       }
       
-      // Se não há mais chamada ativa, resetar notificação
+      // Se não há mais chamada ativa, resetar e fechar modal
       if (!activeCall) {
         notifiedVideoCallId.current = null;
+        setShowIncomingCall(false);
       }
     } catch (error) {
       // Erro silencioso - não precisa mostrar ao usuário
@@ -274,6 +272,41 @@ export default function ChatScreen() {
     } finally {
       setSending(false);
     }
+  };
+
+  const handleAcceptCall = async () => {
+    console.log('[Chat] Chamada aceita - navegando para videochamada');
+    setShowIncomingCall(false);
+    
+    // Atualizar status da chamada no servidor para ACTIVE
+    if (incomingCallData?.callId) {
+      try {
+        await VideoCallService.joinVideoCall(incomingCallData.callId);
+        console.log('[Chat] Status da chamada atualizado para ACTIVE');
+      } catch (error) {
+        console.error('[Chat] Erro ao atualizar status da chamada:', error);
+      }
+    }
+    
+    router.push(`/video-call-webrtc/${id}`);
+  };
+
+  const handleRejectCall = async () => {
+    console.log('[Chat] Chamada rejeitada');
+    setShowIncomingCall(false);
+    
+    // Encerrar a chamada no servidor
+    if (incomingCallData?.callId) {
+      try {
+        await VideoCallService.endVideoCall(incomingCallData.callId);
+        console.log('[Chat] Chamada encerrada no servidor');
+      } catch (error) {
+        console.error('[Chat] Erro ao encerrar chamada:', error);
+      }
+    }
+    
+    notifiedVideoCallId.current = null;
+    setActiveVideoCall(null);
   };
 
   const getOtherUser = () => {
@@ -432,12 +465,13 @@ export default function ChatScreen() {
             </Text>
           )}
         </View>
-        {isActive && user?.role === 'NUTRITIONIST' && (
+        {/* Botão de Videochamada - Para todos os usuários quando a conversa está ativa */}
+        {isActive && (
           <TouchableOpacity 
             onPress={() => router.push(`/video-call-webrtc/${id}`)} 
             style={styles.videoButton}
           >
-            <Ionicons name="videocam" size={24} color={Colors.text.inverse} />
+            <Ionicons name="videocam" size={28} color={Colors.text.inverse} />
           </TouchableOpacity>
         )}
         {user?.role === 'NUTRITIONIST' && isActive && (
@@ -447,21 +481,8 @@ export default function ChatScreen() {
         )}
       </View>
 
-      {/* Banner de chamada ativa para o paciente/outro usuário */}
-      {activeVideoCall && activeVideoCall.initiatedBy !== user?.id && (
-        <View style={styles.videoCallBanner}>
-          <Ionicons name="videocam" size={24} color="#fff" />
-          <Text style={styles.videoCallBannerText}>
-            {user?.role === 'NUTRITIONIST' ? 'Paciente' : 'Nutricionista'} está em videochamada
-          </Text>
-          <TouchableOpacity 
-            onPress={() => router.push(`/video-call-webrtc/${id}`)}
-            style={styles.joinCallButton}
-          >
-            <Text style={styles.joinCallButtonText}>ATENDER</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      {/* Banner de chamada ativa - REMOVIDO para usar apenas o modal */}
+      {/* O modal IncomingCallModal substitui este banner */}
 
       {!canSendMessage && isScheduled && (
         <View style={styles.blockedBanner}>
@@ -512,6 +533,14 @@ export default function ChatScreen() {
           />
         </TouchableOpacity>
       </View>
+
+      {/* Modal de Chamada Recebida */}
+      <IncomingCallModal
+        visible={showIncomingCall}
+        callerName={incomingCallData?.callerName || 'Usuário'}
+        onAccept={handleAcceptCall}
+        onReject={handleRejectCall}
+      />
     </KeyboardAvoidingView>
   );
 }

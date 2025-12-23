@@ -45,6 +45,8 @@ export class WebRTCService {
   private remoteStream: MediaStream | null = null;
   private roomId: string = '';
   private userId: string = '';
+  private onCallAcceptedCallback: (() => void) | null = null;
+  private onCallRejectedCallback: (() => void) | null = null;
 
   constructor() {
   }
@@ -108,7 +110,58 @@ export class WebRTCService {
 
     // Usuário desconectado
     this.socket.on('user-disconnected', (socketId: string) => {
+      console.log('[WebRTC] 👋 User disconnected:', socketId);
     });
+
+    // Chamada aceita pelo outro usuário
+    this.socket.on('call-accepted', (userId: string) => {
+      console.log('[WebRTC] ✅ Call accepted by:', userId);
+      if (this.onCallAcceptedCallback) {
+        this.onCallAcceptedCallback();
+      }
+    });
+
+    // Chamada rejeitada pelo outro usuário
+    this.socket.on('call-rejected', (userId: string) => {
+      console.log('[WebRTC] ❌ Call rejected by:', userId);
+      if (this.onCallRejectedCallback) {
+        this.onCallRejectedCallback();
+      }
+    });
+  }
+
+  /**
+   * Definir callback para quando chamada é aceita
+   */
+  setOnCallAccepted(callback: () => void) {
+    this.onCallAcceptedCallback = callback;
+  }
+
+  /**
+   * Definir callback para quando chamada é rejeitada
+   */
+  setOnCallRejected(callback: () => void) {
+    this.onCallRejectedCallback = callback;
+  }
+
+  /**
+   * Notificar que a chamada foi aceita
+   */
+  notifyCallAccepted() {
+    if (this.socket && this.roomId && this.userId) {
+      console.log('[WebRTC] 📢 Notifying call accepted');
+      this.socket.emit('call-accepted', this.roomId, this.userId);
+    }
+  }
+
+  /**
+   * Notificar que a chamada foi rejeitada
+   */
+  notifyCallRejected() {
+    if (this.socket && this.roomId && this.userId) {
+      console.log('[WebRTC] 📢 Notifying call rejected');
+      this.socket.emit('call-rejected', this.roomId, this.userId);
+    }
   }
 
   /**

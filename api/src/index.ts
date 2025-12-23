@@ -121,6 +121,18 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit('ice-candidate', candidate, socket.id);
   });
 
+  // Chamada aceita
+  socket.on('call-accepted', (roomId: string, userId: string) => {
+    console.log('✅ Call accepted by user:', userId, 'in room:', roomId);
+    socket.to(roomId).emit('call-accepted', userId);
+  });
+
+  // Chamada rejeitada
+  socket.on('call-rejected', (roomId: string, userId: string) => {
+    console.log('❌ Call rejected by user:', userId, 'in room:', roomId);
+    socket.to(roomId).emit('call-rejected', userId);
+  });
+
   // Sair da sala
   socket.on('leave-room', (roomId: string) => {
     console.log('👋 User leaving room:', roomId);
