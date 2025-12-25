@@ -247,9 +247,13 @@ export class WebRTCService {
 
       // 3. Adicionar tracks locais ao peer connection
       this.localStream.getTracks().forEach((track) => {
-        console.log('[WebRTC] Adding track to peer connection:', track.kind, 'enabled:', track.enabled);
+        console.log('[WebRTC] 📹 Adding track to peer connection:', track.kind, 'enabled:', track.enabled, 'id:', track.id);
         this.peerConnection?.addTrack(track, this.localStream!);
       });
+      
+      console.log('[WebRTC] ✅ All local tracks added. Total:', this.localStream.getTracks().length);
+      
+      console.log('[WebRTC] ✅ All local tracks added. Total:', this.localStream.getTracks().length);
 
       // 4. Entrar na sala
       this.socket?.emit('join-room', roomId, userId);
@@ -345,8 +349,34 @@ export class WebRTCService {
     pc.onaddstream = (event: any) => {
       console.log('[WebRTC] 📹 Remote stream received!');
       if (event.stream) {
-        console.log('[WebRTC] 📹 Remote stream tracks:', event.stream.getTracks().map((t: any) => t.kind));
+        const tracks = event.stream.getTracks();
+        console.log('[WebRTC] 📹 Remote stream has', tracks.length, 'tracks:');
+        tracks.forEach((t: any) => {
+          console.log('[WebRTC] 📹   -', t.kind, 'enabled:', t.enabled, 'id:', t.id, 'readyState:', t.readyState);
+        });
+        
+        // Verificar se tem vídeo
+        const videoTrack = tracks.find((t: any) => t.kind === 'video');
+        if (!videoTrack) {
+          console.error('[WebRTC] ⚠️ WARNING: Remote stream has NO VIDEO TRACK!');
+        } else {
+          console.log('[WebRTC] ✅ Remote stream HAS video track');
+        }
+        
         this.remoteStream = event.stream;
+        onRemoteStream(this.remoteStream);
+      }
+    };
+
+    // Listener ontrack (alternativa mais moderna - alguns dispositivos usam isso)
+    // @ts-ignore
+    pc.ontrack = (event: any) => {
+      console.log('[WebRTC] 🎯 Track received via ontrack:', event.track.kind);
+      
+      // Se ainda não temos remote stream, usar o do evento
+      if (!this.remoteStream && event.streams && event.streams[0]) {
+        console.log('[WebRTC] 📹 Setting remote stream from ontrack event');
+        this.remoteStream = event.streams[0];
         onRemoteStream(this.remoteStream);
       }
     };
@@ -428,6 +458,16 @@ export class WebRTCService {
         offerToReceiveAudio: true,
       });
 
+      // Verificar se offer contém vídeo
+      if (offer.sdp) {
+        const hasVideo = offer.sdp.includes('m=video');
+        const hasAudio = offer.sdp.includes('m=audio');
+        console.log('[WebRTC] 📝 Offer SDP contains:', hasAudio ? '🎤 audio' : '', hasVideo ? '📹 video' : '');
+        if (!hasVideo) {
+          console.error('[WebRTC] ⚠️ WARNING: Offer SDP does NOT contain video!');
+        }
+      }
+
       console.log('[WebRTC] 📝 Offer created, setting as local description...');
       await this.peerConnection.setLocalDescription(offer);
       
@@ -457,6 +497,17 @@ export class WebRTCService {
       }
 
       console.log('[WebRTC] 📥 Received offer, setting as remote description...');
+      
+      // Verificar se offer contém vídeo
+      if (offer.sdp) {
+        const hasVideo = offer.sdp.includes('m=video');
+        const hasAudio = offer.sdp.includes('m=audio');
+        console.log('[WebRTC] 📥 Received offer contains:', hasAudio ? '🎤 audio' : '', hasVideo ? '📹 video' : '');
+        if (!hasVideo) {
+          console.error('[WebRTC] ⚠️ WARNING: Received offer does NOT contain video!');
+        }
+      }
+      
       await this.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
       
       // Marcar que remote description foi definida
@@ -468,6 +519,17 @@ export class WebRTCService {
 
       console.log('[WebRTC] 📝 Creating answer...');
       const answer = await this.peerConnection.createAnswer();
+      
+      // Verificar se answer contém vídeo
+      if (answer.sdp) {
+        const hasVideo = answer.sdp.includes('m=video');
+        const hasAudio = answer.sdp.includes('m=audio');
+        console.log('[WebRTC] 📝 Answer SDP contains:', hasAudio ? '🎤 audio' : '', hasVideo ? '📹 video' : '');
+        if (!hasVideo) {
+          console.error('[WebRTC] ⚠️ WARNING: Answer SDP does NOT contain video!');
+        }
+      }
+      
       await this.peerConnection.setLocalDescription(answer);
 
       console.log('[WebRTC] 📤 Sending answer to room:', this.roomId);

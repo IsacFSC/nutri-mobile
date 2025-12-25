@@ -224,7 +224,6 @@ export default function WebRTCVideoCallScreen() {
 
       webrtcService.setOnCallEnded(() => {
         console.log('[WebRTC] 📴 CALLBACK: Chamada encerrada pelo outro usuário');
-        setCallStatus('ended');
         
         // Limpar apenas localmente, SEM enviar outro evento call-ended
         if (videoCall) {
@@ -240,17 +239,24 @@ export default function WebRTCVideoCallScreen() {
           setRemoteStream(null);
         }
         
-        Alert.alert(
-          'Chamada Encerrada',
-          'O outro usuário encerrou a chamada.',
-          [{ 
-            text: 'OK', 
-            onPress: () => {
-              webrtcService.disconnect();
-              router.back();
-            }
-          }]
-        );
+        // Mudar status e mostrar alert
+        setCallStatus('ended');
+        
+        // Usar setTimeout para garantir que o estado seja atualizado antes do alert
+        setTimeout(() => {
+          Alert.alert(
+            'Chamada Encerrada',
+            'O outro usuário encerrou a chamada.',
+            [{ 
+              text: 'OK', 
+              onPress: () => {
+                webrtcService.disconnect();
+                router.back();
+              }
+            }],
+            { cancelable: false }
+          );
+        }, 100);
       });
       
       console.log('[WebRTC] Iniciando streams...');
@@ -393,6 +399,12 @@ export default function WebRTCVideoCallScreen() {
             <>
               <ActivityIndicator size="large" color="#fff" />
               <Text style={styles.waitingText}>Conectando com {otherUserName}...</Text>
+            </>
+          )}
+          {callStatus === 'ended' && (
+            <>
+              <Ionicons name="call-outline" size={80} color="#fff" />
+              <Text style={styles.waitingText}>Chamada Encerrada</Text>
             </>
           )}
         </View>

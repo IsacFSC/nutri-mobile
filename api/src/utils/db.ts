@@ -1,16 +1,69 @@
 import { PrismaClient } from '@prisma/client';
 
 /**
- * Singleton do Prisma Client com retry logic para cold starts
+ * Singleton do Prisma Client com retry logic e reconnection
  */
 class DatabaseConnection {
   private static instance: PrismaClient | null = null;
   private static isConnecting = false;
+  private static reconnectTimer: NodeJS.Timeout | null = null;
 
   static getInstance(): PrismaClient {
     if (!this.instance) {
       this.instance = new PrismaClient({
         log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
+        // Configurações de connection pool para Render.com
+        datasources: {
+          db: {
+            url: process.env.DATABASE_URL,
+          },
+        },
+      });
+
+      // Middleware para retry automático em caso de connection reset
+      this.instance.$use(async (params, next) => {
+        const maxRetries = 3;
+        let lastError;
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            return await next(params);
+          } catch (error: any) {
+            lastError = error;
+            
+            // Verificar se é erro de conexão (P1017, P1001, P1002)
+            const isConnectionError = 
+              error.code === 'P1017' || // Server closed connection
+              error.code === 'P1001' || // Can't reach database
+              error.code === 'P1002' || // Database timeout
+              error.message?.includes('Connection reset') ||
+              error.message?.includes('ECONNRESET');
+
+            if (isConnectionError && attempt < maxRetries) {
+              console.warn(`[Prisma] Connection error on attempt ${attempt}, retrying...`);
+              
+              // Tentar reconectar
+              try {
+                await this.instance?.$disconnect();
+                await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+                await this.instance?.$connect();
+              } catch (reconnectError) {
+                console.error('[Prisma] Reconnection failed:', reconnectError);
+              }
+              
+              continue;
+            }
+            
+            throw error;
+          }
+        }
+
+        throw lastError;
+      });
+
+      // Handler para eventos de desconexão
+      process.on('beforeExit', async () => {
+        await this.disconnect();
       });
     }
     return this.instance;
