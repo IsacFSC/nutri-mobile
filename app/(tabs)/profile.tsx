@@ -136,6 +136,13 @@ export default function ProfileScreen() {
           onPress: () => {},
         },
         {
+          icon: 'volume-high-outline',
+          title: 'Sons e Alertas',
+          subtitle: 'Configurar sons de chamadas e notificações',
+          color: Colors.accent,
+          onPress: () => router.push('/sound-settings'),
+        },
+        {
           icon: 'stats-chart-outline',
           title: 'Relatórios',
           subtitle: 'Tabela de atendimentos',

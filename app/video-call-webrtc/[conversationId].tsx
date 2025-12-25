@@ -4,6 +4,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { webrtcService } from '@/src/services/webrtc.service';
 import { VideoCallService } from '@/src/services/videoCall.service';
+import soundService from '@/src/services/sound.service';
 import { useAuthStore } from '@/src/store/authStore';
 import { Colors, Spacing } from '@/src/constants';
 import api from '@/src/config/api';
@@ -114,8 +115,45 @@ export default function WebRTCVideoCallScreen() {
     if (remoteStream && callStatus !== 'connected') {
       console.log('[WebRTC] 🎉 Chamada conectada - outro usuário atendeu!');
       setCallStatus('connected');
+      // Iniciar contagem de duração
+      if (!callStartTime.current) {
+        callStartTime.current = new Date();
+      }
     }
-  }, [remoteStream]);
+  }, [remoteStream, callStatus]);
+
+  // Gerenciar sons baseado no status da chamada
+  useEffect(() => {
+    const initSound = async () => {
+      await soundService.initialize();
+    };
+    initSound();
+
+    return () => {
+      soundService.cleanup();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (callStatus === 'ringing') {
+      // Tocar som de chamada saindo
+      console.log('[WebRTC] Tocando som de chamada saindo...');
+      soundService.playOutgoingCallSound();
+    } else if (callStatus === 'connected') {
+      // Parar sons quando conectar
+      console.log('[WebRTC] Parando sons - chamada conectada');
+      soundService.stopAllSounds();
+    } else if (callStatus === 'ended') {
+      // Parar todos os sons
+      soundService.stopAllSounds();
+    }
+
+    return () => {
+      if (callStatus === 'ringing') {
+        soundService.stopOutgoingCallSound();
+      }
+    };
+  }, [callStatus]);
 
   const initVideoCall = async () => {
     try {
@@ -181,6 +219,37 @@ export default function WebRTCVideoCallScreen() {
           'Chamada Rejeitada',
           'O outro usuário rejeitou a chamada.',
           [{ text: 'OK', onPress: () => router.back() }]
+        );
+      });
+
+      webrtcService.setOnCallEnded(() => {
+        console.log('[WebRTC] 📴 CALLBACK: Chamada encerrada pelo outro usuário');
+        setCallStatus('ended');
+        
+        // Limpar apenas localmente, SEM enviar outro evento call-ended
+        if (videoCall) {
+          VideoCallService.endVideoCall(videoCall.id).catch(console.error);
+        }
+        
+        // Limpar conexão local sem notificar novamente
+        if (localStream) {
+          localStream.getTracks().forEach((track: any) => track.stop());
+          setLocalStream(null);
+        }
+        if (remoteStream) {
+          setRemoteStream(null);
+        }
+        
+        Alert.alert(
+          'Chamada Encerrada',
+          'O outro usuário encerrou a chamada.',
+          [{ 
+            text: 'OK', 
+            onPress: () => {
+              webrtcService.disconnect();
+              router.back();
+            }
+          }]
         );
       });
       
@@ -270,6 +339,7 @@ export default function WebRTCVideoCallScreen() {
       // Limpar callbacks
       webrtcService.setOnCallAccepted(() => {});
       webrtcService.setOnCallRejected(() => {});
+      webrtcService.setOnCallEnded(() => {});
       
       webrtcService.disconnect();
       if (durationInterval.current) {

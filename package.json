@@ -11,6 +11,7 @@
     "build:android": "eas build --platform android",
     "build:ios": "eas build --platform ios",
     "build:all": "eas build --platform all",
+    "generate-icons": "node scripts/generate-circular-icon.js",
     "lint": "eslint .",
     "test": "jest"
   },
@@ -25,6 +26,7 @@
     "date-fns": "^3.0.6",
     "expo": "~54.0.29",
     "expo-asset": "~12.0.11",
+    "expo-av": "~16.0.8",
     "expo-linking": "8.0.10",
     "expo-notifications": "^0.32.15",
     "expo-router": "~6.0.19",
@@ -51,6 +53,7 @@
     "babel-plugin-module-resolver": "^5.0.2",
     "eslint": "^8.56.0",
     "prettier": "^3.1.1",
+    "sharp": "^0.34.5",
     "typescript": "^5.3.3"
   },
   "private": true

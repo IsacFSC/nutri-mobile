@@ -31,9 +31,16 @@ export default function HomeScreen() {
         setAdminStats(data);
       }
     } catch (error: any) {
-      console.error('Error loading stats:', error);
+      console.error('[HomeScreen] Error loading stats:', error);
+      // Não mostrar alerta em erro de autenticação (usuário já será redirecionado)
       if (!error?.isAuthError) {
-        Alert.alert('Erro', 'Não foi possível carregar as estatísticas');
+        console.warn('[HomeScreen] Falha ao carregar estatísticas, tentando novamente...');
+        // Tentar novamente após 2 segundos
+        setTimeout(() => {
+          if (user?.role === 'NUTRITIONIST' || user?.role === 'ADMIN') {
+            loadStats();
+          }
+        }, 2000);
       }
     } finally {
       setLoadingStats(false);
@@ -43,6 +50,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (user?.role === 'NUTRITIONIST' || user?.role === 'ADMIN') {
+      // Carregar stats em background, não bloquear UI
       loadStats();
     }
   }, [user]);
@@ -53,7 +61,8 @@ export default function HomeScreen() {
   };
 
   // Early return após todos os hooks
-  if (isLoading || !user) {
+  // Remover bloqueio de loading - mostrar tela mesmo sem stats
+  if (!user) {
     return <Loading />;
   }
 

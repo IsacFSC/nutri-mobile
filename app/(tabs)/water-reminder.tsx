@@ -29,12 +29,22 @@ export default function WaterReminderScreen() {
   const [showEndPicker, setShowEndPicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [scheduledCount, setScheduledCount] = useState(0);
+  const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
   
   const isExpoGo = Constants.appOwnership === 'expo';
 
   useEffect(() => {
     loadConfig();
   }, []);
+
+  // Limpar timeout ao desmontar componente
+  useEffect(() => {
+    return () => {
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+      }
+    };
+  }, [saveTimeout]);
 
   const loadConfig = async () => {
     try {
@@ -46,32 +56,49 @@ export default function WaterReminderScreen() {
       // Verificar quantas notificações estão agendadas
       const count = await NotificationsService.getScheduledWaterRemindersCount();
       setScheduledCount(count);
+      
+      // Limpar notificações duplicadas se houver
+      const cleaned = await NotificationsService.cleanupWaterReminders();
+      if (cleaned > 0) {
+        console.log(`[WaterReminder] ${cleaned} notificações duplicadas foram limpas`);
+        // Atualizar contagem após limpeza
+        const newCount = await NotificationsService.getScheduledWaterRemindersCount();
+        setScheduledCount(newCount);
+      }
     } catch (error) {
       console.error('Erro ao carregar configuração:', error);
     }
   };
 
-  const saveConfig = async (newConfig: WaterReminderConfig) => {
+  const saveConfig = async (newConfig: WaterReminderConfig, showAlert: boolean = false) => {
     try {
       setLoading(true);
       await NotificationsService.saveWaterReminderConfig(newConfig);
       
       if (newConfig.enabled) {
+        console.log('[WaterReminder] Agendando lembretes...', newConfig);
         await NotificationsService.scheduleWaterReminders(newConfig);
         const count = await NotificationsService.getScheduledWaterRemindersCount();
         setScheduledCount(count);
-        Alert.alert(
-          'Sucesso!',
-          `${count} lembretes de água foram agendados para você! 💧`,
-          [{ text: 'OK' }]
-        );
+        console.log('[WaterReminder] Lembretes agendados:', count);
+        
+        // Mostrar alerta apenas quando explicitamente solicitado (ex: ao ativar)
+        if (showAlert) {
+          Alert.alert(
+            'Sucesso!',
+            `${count} lembretes de água foram agendados para você! 💧`,
+            [{ text: 'OK' }]
+          );
+        }
       } else {
+        console.log('[WaterReminder] Cancelando lembretes...');
         await NotificationsService.cancelWaterReminders();
         setScheduledCount(0);
       }
       
       setConfig(newConfig);
     } catch (error: any) {
+      console.error('[WaterReminder] Erro ao salvar configuração:', error);
       Alert.alert(
         'Erro',
         error.message || 'Não foi possível salvar a configuração',
@@ -80,6 +107,24 @@ export default function WaterReminderScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Função auxiliar para salvar configuração com debounce (para mudanças de tempo/intervalo)
+  const saveConfigDebounced = (newConfig: WaterReminderConfig) => {
+    // Limpar timeout anterior
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+    }
+
+    // Atualizar estado local imediatamente
+    setConfig(newConfig);
+
+    // Agendar salvamento após 1 segundo (sem mostrar alerta)
+    const timeout = setTimeout(() => {
+      saveConfig(newConfig, false);
+    }, 1000);
+
+    setSaveTimeout(timeout);
   };
 
   const handleToggleEnabled = async (value: boolean) => {
@@ -92,12 +137,12 @@ export default function WaterReminderScreen() {
           { text: 'Cancelar', style: 'cancel' },
           {
             text: 'Ativar',
-            onPress: () => saveConfig({ ...config, enabled: value }),
+            onPress: () => saveConfig({ ...config, enabled: value }, true),
           },
         ]
       );
     } else {
-      await saveConfig({ ...config, enabled: value });
+      await saveConfig({ ...config, enabled: value }, value);
     }
   };
 
@@ -109,7 +154,7 @@ export default function WaterReminderScreen() {
       const newConfig = { ...config, startTime: `${hours}:${minutes}` };
       setConfig(newConfig);
       if (config.enabled) {
-        saveConfig(newConfig);
+        saveConfigDebounced(newConfig);
       }
     }
   };
@@ -122,7 +167,7 @@ export default function WaterReminderScreen() {
       const newConfig = { ...config, endTime: `${hours}:${minutes}` };
       setConfig(newConfig);
       if (config.enabled) {
-        saveConfig(newConfig);
+        saveConfigDebounced(newConfig);
       }
     }
   };
@@ -131,15 +176,16 @@ export default function WaterReminderScreen() {
     const newConfig = { ...config, intervalMinutes: minutes };
     setConfig(newConfig);
     if (config.enabled) {
-      saveConfig(newConfig);
+      saveConfigDebounced(newConfig);
     }
   };
 
   const handleGoalChange = (liters: number) => {
     const newConfig = { ...config, dailyGoalLiters: liters };
     setConfig(newConfig);
+    // Meta não afeta notificações, só salvar localmente
     if (config.enabled) {
-      saveConfig(newConfig);
+      NotificationsService.saveWaterReminderConfig(newConfig);
     }
   };
 

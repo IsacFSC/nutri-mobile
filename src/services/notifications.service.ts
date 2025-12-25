@@ -23,8 +23,8 @@ if (!isExpoGo) {
     // Configurar como as notificações devem ser tratadas quando o app está em primeiro plano
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
+        shouldShowAlert: false, // Deprecated - usando banner e list abaixo
+        shouldPlaySound: true, // Tocar som
         shouldSetBadge: false,
         shouldShowBanner: true,
         shouldShowList: true,
@@ -81,9 +81,9 @@ class NotificationsService {
       throw new Error('Notificações não disponíveis no Expo Go. Para usar esta funcionalidade, compile um development build do app.');
     }
 
-    // Cancelar TODAS as notificações agendadas primeiro
-    await Notifications.cancelAllScheduledNotificationsAsync();
-    console.log('[Notifications] Todas notificações anteriores canceladas');
+    // Cancelar APENAS as notificações de água primeiro
+    await this.cancelWaterReminders();
+    console.log('[Notifications] Notificações de água anteriores canceladas');
 
     if (!config.enabled) {
       return;
@@ -158,13 +158,17 @@ class NotificationsService {
     }
 
     const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
+    console.log(`[Notifications] Total de notificações agendadas: ${scheduledNotifications.length}`);
     
     // Cancelar apenas notificações de água
+    let canceledCount = 0;
     for (const notification of scheduledNotifications) {
       if (notification.content.data?.type === 'water_reminder') {
         await Notifications.cancelScheduledNotificationAsync(notification.identifier);
+        canceledCount++;
       }
     }
+    console.log(`[Notifications] ${canceledCount} notificações de água canceladas`);
   }
 
   async enableWaterReminders(enabled: boolean): Promise<void> {
@@ -188,6 +192,27 @@ class NotificationsService {
 
     const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
     return scheduledNotifications.filter(n => n.content.data?.type === 'water_reminder').length;
+  }
+
+  // Método para verificar e limpar notificações duplicadas ou órfãs
+  async cleanupWaterReminders(): Promise<number> {
+    if (!Notifications || isExpoGo) {
+      return 0;
+    }
+
+    const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
+    const waterNotifications = scheduledNotifications.filter(n => n.content.data?.type === 'water_reminder');
+    
+    console.log(`[Notifications] Limpando notificações... ${waterNotifications.length} encontradas`);
+    
+    // Se houver muitas notificações (mais de 20), limpar todas
+    if (waterNotifications.length > 20) {
+      console.log(`[Notifications] Detectadas ${waterNotifications.length} notificações (possível duplicação). Limpando...`);
+      await this.cancelWaterReminders();
+      return waterNotifications.length;
+    }
+    
+    return 0;
   }
 }
 

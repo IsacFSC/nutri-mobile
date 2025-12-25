@@ -133,6 +133,12 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit('call-rejected', userId);
   });
 
+  // Chamada encerrada
+  socket.on('call-ended', (roomId: string, userId: string) => {
+    console.log('📴 Call ended by user:', userId, 'in room:', roomId);
+    socket.to(roomId).emit('call-ended', userId);
+  });
+
   // Sair da sala
   socket.on('leave-room', (roomId: string) => {
     console.log('👋 User leaving room:', roomId);
